@@ -1,0 +1,43 @@
+type Comment implements Node @node {
+  id: ID! @globalId
+  body: String!
+  author: User! @belongsTo
+  post: Post! @belongsTo
+  "Whether the signed-in user may edit it: CommentPolicy#update?."
+  viewerCanUpdate: Boolean!
+  "Whether the signed-in user may delete it: CommentPolicy#destroy?."
+  viewerCanDelete: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+input CreateCommentInput {
+  postId: ID! @globalId(decode: ID)
+  body: String!
+}
+
+input UpdateCommentInput {
+  id: ID! @globalId(decode: ID)
+  body: String!
+}
+
+extend type Mutation {
+  "Comment on a post as the signed-in user."
+  createComment(input: CreateCommentInput! @spread): Comment
+    @guard
+    @canModel(ability: "create")
+    @create
+    @inject(context: "current_user.id", name: "author_id")
+
+  "Edit one of the signed-in user's comments."
+  updateComment(input: UpdateCommentInput! @spread): Comment
+    @guard
+    @canFind(ability: "update", find: "input.id")
+    @update
+
+  "Delete a comment: its author, the post's author or an admin."
+  deleteComment(id: ID! @globalId(decode: ID) @whereKey): Comment
+    @guard
+    @canFind(ability: "destroy", find: "id")
+    @delete
+}

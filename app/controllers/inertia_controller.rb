@@ -2,9 +2,13 @@
 
 # Base for the controllers that render Inertia pages.
 class InertiaController < ApplicationController
+  include PageQueryRendering
+
   rescue_from Pundit::NotAuthorizedError, with: :forbidden
 
   # Props every page receives.
+  inertia_share csrf_token: -> { form_authenticity_token }
+
   inertia_share auth: -> {
     { user: current_user && {
         id: current_user.id,

@@ -1,11 +1,16 @@
 # graphql-config, read by the GraphQL plugins for JetBrains IDEs and VS Code.
-# The two generated files describe Lighthouse's directives and the types it
-# generates. In development they are rewritten on boot and on every reload
-# (config.ide_helper); elsewhere, refresh them with:
-#   bin/rails lighthouse:ide_helper
-schema:
-  - graphql/**/*.graphql
-  - schema-directives.graphql
-  - programmatic-types.graphql
-documents: 
-  - app/graphql/**/*.rb
+projects:
+  # Writing the SDL. The two generated files describe Lighthouse's directives and
+  # the types it generates; in development they are rewritten on boot and on every
+  # reload (config.ide_helper); elsewhere, refresh them with:
+  #   bin/rails lighthouse:ide_helper
+  sdl:
+    schema:
+      - graphql/**/*.graphql
+      - schema-directives.graphql
+      - programmatic-types.graphql
+  # The frontend's graphql() documents, against the schema as clients see it, with the
+  # fields Lighthouse rewrites (connections, orderBy inputs): bin/rails graphql:schema:dump.
+  app:
+    schema: schema.graphql
+    documents: app/javascript/**/*.{ts,tsx}

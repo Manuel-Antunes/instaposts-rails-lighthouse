@@ -17,4 +17,9 @@ class PostPolicyTest < ActiveSupport::TestCase
     assert_not PostPolicy.new(users(:reader), Post).create?
     assert_not PostPolicy.new(nil, Post).create?
   end
+
+  test "anyone signed in can like a post" do
+    assert PostPolicy.new(users(:reader), posts(:one)).like?
+    assert_not PostPolicy.new(nil, posts(:one)).like?
+  end
 end

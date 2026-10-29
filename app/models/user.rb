@@ -1,6 +1,8 @@
 class User < ApplicationRecord
   has_many :accounts, dependent: :destroy
   has_many :posts, foreign_key: :author_id, inverse_of: :author, dependent: :nullify
+  has_many :likes, dependent: :destroy
+  has_many :comments, foreign_key: :author_id, inverse_of: :author, dependent: :destroy
 
   # password_digest is null for users who only sign in through OAuth2, so the
   # built-in validations are off; signing up requires one (context: :signup).

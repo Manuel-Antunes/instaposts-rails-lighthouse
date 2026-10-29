@@ -5,24 +5,32 @@ class PostsTest < ActionDispatch::IntegrationTest
     inertia_visit :get, "/"
     assert_response :success
     assert_equal "posts/index", inertia_page["component"]
-    assert_equal 3, inertia_page.dig("props", "posts").size
+    assert_equal 3, inertia_page.dig("props", "page_query", "data", "posts", "edges").size
     assert_nil inertia_page.dig("props", "auth", "user")
 
     inertia_visit :get, "/posts/#{posts(:one).id}"
     assert_equal "posts/show", inertia_page["component"]
-    assert_equal "First", inertia_page.dig("props", "post", "name")
+    assert_equal "First", inertia_page.dig("props", "page_query", "data", "post", "name")
   end
 
-  test "posts are paginated" do
+  test "the feed's first page has 10 posts, and /graphql the next ones" do
     12.times { |i| Post.create!(name: "P#{i}", content: "c", author: users(:author)) }
 
-    inertia_visit :get, "/posts"
-    assert_equal 10, inertia_page.dig("props", "posts").size
-    assert inertia_page.dig("props", "has_next_page")
+    inertia_visit :get, "/"
+    posts = inertia_page.dig("props", "page_query", "data", "posts")
+    assert_equal 10, posts["edges"].size
+    assert posts.dig("pageInfo", "hasNextPage")
 
-    inertia_visit :get, "/posts?page=2"
-    assert_equal 5, inertia_page.dig("props", "posts").size
-    assert_not inertia_page.dig("props", "has_next_page")
+    after = posts.dig("pageInfo", "endCursor")
+    rest = gql(%({ posts(first: 10, after: "#{after}", orderBy: [{ column: CREATED_AT, order: DESC }, { column: ID, order: DESC }]) { edges { node { name } } pageInfo { hasNextPage } } }))
+    assert_equal 5, rest.dig("data", "posts", "edges").size
+    assert_not rest.dig("data", "posts", "pageInfo", "hasNextPage")
+    assert_empty posts["edges"].map { _1.dig("node", "name") } & rest.dig("data", "posts", "edges").map { _1.dig("node", "name") }
+  end
+
+  test "a missing post is a 404" do
+    get "/posts/0"
+    assert_response :not_found
   end
 
   test "guests are sent to the login page when they try to write" do

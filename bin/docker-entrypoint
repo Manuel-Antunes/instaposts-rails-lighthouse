@@ -3,6 +3,11 @@
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
+
+  # Inertia SSR server, listens on 127.0.0.1:13714. If it is down Rails falls back to client-side rendering.
+  if [ -f public/vite-ssr/ssr.js ]; then
+    node public/vite-ssr/ssr.js &
+  fi
 fi
 
 exec "${@}"

@@ -13,19 +13,6 @@ export type AuthUser = {
 }
 
 export type SharedProps = {
+  csrf_token: string
   auth: { user: AuthUser | null }
-}
-
-export type PostAuthor = {
-  id: number
-  name: string
-  avatar_url: string | null
-}
-
-export type Post = {
-  id: number
-  name: string
-  content: string
-  created_at: string
-  author: PostAuthor | null
 }

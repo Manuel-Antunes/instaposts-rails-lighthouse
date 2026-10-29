@@ -1,4 +1,10 @@
+import { ApolloProvider } from '@apollo/client/react'
 import { createInertiaApp } from '@inertiajs/react'
+
+import { createApolloClient } from '@/lib/apollo'
+
+// One client for the whole visit: its cache outlives Inertia navigations.
+const apolloClient = createApolloClient({ ssr: false })
 
 void createInertiaApp({
   pages: "../pages",
@@ -8,6 +14,8 @@ void createInertiaApp({
   title: (title) => title || "Blog Rails",
 
   strictMode: true,
+
+  withApp: (app) => <ApolloProvider client={apolloClient}>{app}</ApolloProvider>,
 
   defaults: {
     form: {

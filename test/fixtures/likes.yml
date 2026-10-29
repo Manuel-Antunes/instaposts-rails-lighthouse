@@ -1,0 +1,8 @@
+# posts(:one).likes_count counts these.
+reader_likes_one:
+  user: reader
+  post: one
+
+author_likes_one:
+  user: author
+  post: one

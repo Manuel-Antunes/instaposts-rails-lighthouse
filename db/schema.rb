@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_29_170000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_30_120100) do
   create_table "accounts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "provider", null: false
@@ -21,6 +21,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_170000) do
     t.index ["user_id"], name: "index_accounts_on_user_id"
   end
 
+  create_table "comments", force: :cascade do |t|
+    t.integer "post_id", null: false
+    t.integer "author_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_id"], name: "index_comments_on_author_id"
+    t.index ["post_id", "created_at"], name: "index_comments_on_post_id_and_created_at"
+    t.index ["post_id"], name: "index_comments_on_post_id"
+  end
+
+  create_table "likes", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.integer "post_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["post_id", "user_id"], name: "index_likes_on_post_id_and_user_id", unique: true
+    t.index ["post_id"], name: "index_likes_on_post_id"
+    t.index ["user_id"], name: "index_likes_on_user_id"
+  end
+
   create_table "posts", force: :cascade do |t|
     t.string "name"
     t.text "content"
@@ -28,6 +49,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_170000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "author_id"
+    t.integer "likes_count", default: 0, null: false
+    t.integer "comments_count", default: 0, null: false
     t.index ["author_id"], name: "index_posts_on_author_id"
   end
 
@@ -43,5 +66,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_170000) do
   end
 
   add_foreign_key "accounts", "users"
+  add_foreign_key "comments", "posts"
+  add_foreign_key "comments", "users", column: "author_id"
+  add_foreign_key "likes", "posts"
+  add_foreign_key "likes", "users"
   add_foreign_key "posts", "users", column: "author_id"
 end

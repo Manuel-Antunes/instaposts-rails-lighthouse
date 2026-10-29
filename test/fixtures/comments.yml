@@ -1,0 +1,12 @@
+# posts(:one).comments_count counts these.
+by_reader:
+  post: one
+  author: reader
+  body: Nice post
+  created_at: <%= 2.hours.ago.to_fs(:db) %>
+
+by_admin:
+  post: one
+  author: admin
+  body: Agreed
+  created_at: <%= 1.hour.ago.to_fs(:db) %>

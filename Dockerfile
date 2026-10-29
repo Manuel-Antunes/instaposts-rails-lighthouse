@@ -27,7 +27,7 @@ ENV RAILS_ENV="production" \
     BUNDLE_WITHOUT="development" \
     LD_PRELOAD="/usr/local/lib/libjemalloc.so"
 
-# Node, only to build the Vite assets. Copied into the build stage, never the final image.
+# Node, to build the Vite assets and to run the Inertia SSR server (bin/docker-entrypoint).
 FROM docker.io/library/node:24-slim AS node
 
 # Throw-away build stage to reduce size of final image
@@ -76,6 +76,9 @@ FROM base
 RUN groupadd --system --gid 1000 rails && \
     useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
 USER 1000:1000
+
+# Node runs the Inertia SSR bundle (public/vite-ssr/ssr.js, built with its dependencies inlined).
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 
 # Copy built artifacts: gems, application
 COPY --chown=rails:rails --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"

@@ -4,12 +4,25 @@ type Post implements Node @node {
   content: String!
   active: Boolean
   author: User @belongsTo
+  "The post's page in the app (/posts/:id): Types::PostType#path."
+  path: String!
+  "How many users like the post."
+  likesCount: Int!
+  "Whether the signed-in user likes the post; false for guests. Types::PostType#viewer_has_liked."
+  viewerHasLiked: Boolean!
+  commentsCount: Int!
+  "Oldest first, unless orderBy says otherwise."
+  comments(orderBy: _ @orderBy(columns: ["created_at"])): [Comment!]!
+    @hasMany(type: CONNECTION, defaultCount: 10, maxCount: 50)
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
 extend type Query {
-  posts(orderBy: _ @orderBy(columns: ["created_at", "name"])): [Post!]!
+  "A post by its global id. Authorized by PostPolicy#show?."
+  post(id: ID! @globalId(decode: ID) @eq): Post @find @canResolved(ability: "show")
+
+  posts(orderBy: _ @orderBy(columns: ["created_at", "name", "id"])): [Post!]!
     @paginate(type: CONNECTION, scopes: ["active"])
     @canModel(ability: "index")
 }
@@ -37,4 +50,10 @@ extend type Mutation {
     @guard
     @canModel(ability: "update")
     @update
+
+  "Like a post as the signed-in user. Liking it again changes nothing. Mutations::LikePost."
+  likePost(id: ID!): Post @guard
+
+  "Take back the signed-in user's like. Mutations::UnlikePost."
+  unlikePost(id: ID!): Post @guard
 }

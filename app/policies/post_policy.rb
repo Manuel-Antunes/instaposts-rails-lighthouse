@@ -8,6 +8,9 @@ class PostPolicy < ApplicationPolicy
   # Only authors and admins can write posts.
   def create? = user.present? && user.author_or_admin?
 
+  # Anyone signed in can like a post.
+  def like? = user.present?
+
   class Scope < ApplicationPolicy::Scope
     def resolve = scope.all
   end

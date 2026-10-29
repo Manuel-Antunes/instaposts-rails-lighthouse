@@ -54,7 +54,8 @@ Lighthouse.configure do |config|
   # config.schema_cache = Rails.env.production?
 
   # Reload the app (and so the schema) when a .graphql file changes.
-  # config.watch_sdl = Rails.env.development?
+  # On: config/initializers/page_queries.rb then rewrites schema.graphql for codegen.
+  config.watch_sdl = Rails.env.development?
 
   # Rewrite schema-directives.graphql and programmatic-types.graphql, which your
   # IDE reads through graphql.config.yml, on boot and on every reload. nil: in

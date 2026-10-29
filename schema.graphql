@@ -1,0 +1,2130 @@
+"""
+Return an aggregate of a column over the records of a model, or of a relation of the parent.
+The records are narrowed by the field's argument filters (@eq, @where, ...).
+An unknown function, or a failing aggregation, answers null.
+"""
+directive @aggregate(
+  """
+  The column to aggregate. COUNT does not use it.
+  """
+  column: String
+
+  """
+  The aggregate to compute: SUM, AVG, MIN, MAX or COUNT (case-insensitive).
+  """
+  function: String!
+
+  """
+  The class name of the model whose records to aggregate. Takes precedence over `relation`.
+  """
+  model: String
+
+  """
+  The relation of the parent to aggregate over.
+  """
+  relation: String
+) on FIELD_DEFINITION
+
+"""
+Get a collection of models as the field result: all the model's records,
+narrowed by `scopes`, @builder and the field's argument filters (@eq, @where, ...).
+"""
+directive @all(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Defer the execution of mutations to queued jobs.
+The field answers true once the job is queued.
+"""
+directive @async(
+  """
+  The name of the queue to dispatch the job on.
+  """
+  queue: String
+) on FIELD_DEFINITION
+
+"""
+Require an authenticated user (`context[:current_user]`) before the field resolves,
+else fail with "Unauthenticated.". @guard is the configurable equivalent.
+"""
+directive @auth on FIELD_DEFINITION
+
+"""
+Resolve the inverse of a one-to-one or one-to-many association (`belongs_to`),
+batch-loaded so that loading it for many parents is not an N+1.
+"""
+directive @belongsTo(
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Resolve a many-to-many association of the parent (`has_and_belongs_to_many`) as a list,
+batch-loaded so that listing it for many parents is not an N+1.
+With `type`, the list is paginated.
+"""
+directive @belongsToMany(
+  """
+  The page size when the client omits `first`. Defaults to Config.pagination_default_count.
+  """
+  defaultCount: Int
+
+  """
+  The most records the client may ask for with `first`; null for no limit. Defaults to Config.pagination_max_count.
+  """
+  maxCount: Int
+
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+
+  """
+  How to paginate the list: PAGINATOR, SIMPLE or CONNECTION. Without it, the whole list is returned.
+  """
+  type: PaginateType
+) on FIELD_DEFINITION
+
+"""
+Replace argument values with the corresponding model (or some other value)
+before passing them to the resolver.
+"""
+directive @bind(
+  """
+  A model class, or a class whose `call(value, context)` returns what the value stands for.
+  """
+  class: String!
+
+  """
+  The column the value is matched against, for a model.
+  """
+  column: String = "id"
+
+  """
+  Pass null instead of failing when no record matches.
+  """
+  optional: Boolean = false
+
+  """
+  Relations to eager-load on the bound records.
+  """
+  with: [String!] = []
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Broadcast the result of the field to the subscribers of a subscription, once it resolved successfully.
+A null result, or an error, broadcasts nothing.
+"""
+directive @broadcast(
+  """
+  Broadcast in a background job instead of in the request. Defaults to Config.queue_broadcasts.
+  """
+  shouldQueue: Boolean
+
+  """
+  The name of the subscription field to trigger.
+  """
+  subscription: String!
+) repeatable on FIELD_DEFINITION
+
+"""
+Manipulate the query builder with a method.
+"""
+directive @builder(
+  """
+  The builder class, in the builders namespace.
+  """
+  class: String
+
+  """
+  The method to call: a name (default `call`), or a class and a method separated by `@`.
+  """
+  method: String
+
+  """
+  On a field, the value the method gets after the relation, instead of the arguments.
+  """
+  value: BuilderValue
+) repeatable on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Cache the field's resolved value in Rails.cache.
+The key covers the parent object, the field and its arguments.
+"""
+directive @cache(
+  """
+  How long, in seconds, the value is kept. Without it, until @clearCache or eviction.
+  """
+  maxAge: Int
+
+  """
+  Keep a value per authenticated user, instead of one shared by all (guests share one).
+  """
+  private: Boolean = false
+) on FIELD_DEFINITION
+
+"""
+Set the HTTP Cache-Control header of the response, from the fields and types a query selects.
+The response may be cached for the lowest maxAge among them, and is private if any scope is.
+"""
+directive @cacheControl(
+  """
+  Use the maxAge of the parent field. The `maxAge` argument is ignored.
+  """
+  inheritMaxAge: Boolean = false
+
+  """
+  The maximum amount of time, in seconds, the field's value may be cached. 0 means `no-cache`.
+  """
+  maxAge: Int = 0
+
+  """
+  Who a cached response may be shared with.
+  """
+  scope: CacheControlScope = PUBLIC
+) on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+
+"""
+Mark the field whose value identifies its object in the keys of @cache and @clearCache.
+Without one, the first field of type ID is used.
+"""
+directive @cacheKey on FIELD_DEFINITION
+
+"""
+Check a policy against the models whose primary keys an argument holds, before the field resolves.
+"""
+directive @canFind(
+  """
+  The ability to check, which the policy answers with a predicate: "update" calls `PostPolicy#update?`.
+  """
+  ability: String!
+
+  """
+  What to do when the check fails.
+  """
+  action: CanAction = EXCEPTION_PASS
+
+  """
+  Constant values to pass to the policy method, after the injected arguments.
+  """
+  args: CanArgs
+
+  """
+  The path of the argument holding the id, or a list of ids, of the models to check: "id", or "input.ids".
+  """
+  find: String!
+
+  """
+  Fail when an id matches no model. With false, only the models found are checked.
+  """
+  findOrFail: Boolean = true
+
+  """
+  Pass the field's arguments to the policy method, as its first extra argument.
+  """
+  injectArgs: Boolean = false
+
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  The value to return, when `action` is RETURN_VALUE.
+  """
+  returnValue: CanArgs
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) repeatable on FIELD_DEFINITION
+
+"""
+Check a policy against the model class itself, before the field resolves,
+e.g. `create?` before a @create.
+"""
+directive @canModel(
+  """
+  The ability to check, which the policy answers with a predicate: "update" calls `PostPolicy#update?`.
+  """
+  ability: String!
+
+  """
+  What to do when the check fails.
+  """
+  action: CanAction = EXCEPTION_PASS
+
+  """
+  Constant values to pass to the policy method, after the injected arguments.
+  """
+  args: CanArgs
+
+  """
+  Pass the field's arguments to the policy method, as its first extra argument.
+  """
+  injectArgs: Boolean = false
+
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  The value to return, when `action` is RETURN_VALUE.
+  """
+  returnValue: CanArgs
+) repeatable on FIELD_DEFINITION
+
+"""
+Check a policy against each model the field's query would return,
+narrowed by the field's argument filters (@eq, @where, ...), before the field resolves.
+"""
+directive @canQuery(
+  """
+  The ability to check, which the policy answers with a predicate: "update" calls `PostPolicy#update?`.
+  """
+  ability: String!
+
+  """
+  What to do when the check fails.
+  """
+  action: CanAction = EXCEPTION_PASS
+
+  """
+  Constant values to pass to the policy method, after the injected arguments.
+  """
+  args: CanArgs
+
+  """
+  Pass the field's arguments to the policy method, as its first extra argument.
+  """
+  injectArgs: Boolean = false
+
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  The value to return, when `action` is RETURN_VALUE.
+  """
+  returnValue: CanArgs
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) repeatable on FIELD_DEFINITION
+
+"""
+Check a policy against whatever the field resolved to, each item of a list, after it resolves.
+The field runs first: only use it on fields that do not change data.
+"""
+directive @canResolved(
+  """
+  The ability to check, which the policy answers with a predicate: "update" calls `PostPolicy#update?`.
+  """
+  ability: String!
+
+  """
+  What to do when the check fails.
+  """
+  action: CanAction = EXCEPTION_PASS
+
+  """
+  Constant values to pass to the policy method, after the injected arguments.
+  """
+  args: CanArgs
+
+  """
+  Pass the field's arguments to the policy method, as its first extra argument.
+  """
+  injectArgs: Boolean = false
+
+  """
+  The value to return, when `action` is RETURN_VALUE.
+  """
+  returnValue: CanArgs
+) repeatable on FIELD_DEFINITION
+
+"""
+Check a policy against the parent object of the field, before the field resolves.
+"""
+directive @canRoot(
+  """
+  The ability to check, which the policy answers with a predicate: "update" calls `PostPolicy#update?`.
+  """
+  ability: String!
+
+  """
+  What to do when the check fails.
+  """
+  action: CanAction = EXCEPTION_PASS
+
+  """
+  Constant values to pass to the policy method, after the injected arguments.
+  """
+  args: CanArgs
+
+  """
+  Pass the field's arguments to the policy method, as its first extra argument.
+  """
+  injectArgs: Boolean = false
+
+  """
+  The value to return, when `action` is RETURN_VALUE.
+  """
+  returnValue: CanArgs
+) repeatable on FIELD_DEFINITION
+
+"""
+On a mutation, invalidate @cache entries once the field resolved successfully.
+"""
+directive @clearCache(
+  """
+  Narrow the entries to those of this field.
+  """
+  field: String
+
+  """
+  Narrow the entries to those of the objects with the ids found at this path.
+  """
+  idSource: ClearCacheIdSource
+
+  """
+  The name of the type whose entries to clear. Alone, it clears all of that type's entries.
+  """
+  type: String!
+) repeatable on FIELD_DEFINITION
+
+"""
+Customize the cost of a field in the complexity score of a query, which graphql-ruby checks
+against the schema's `max_complexity`. Without a resolver, the field costs 1 plus its selection,
+once per item asked for on a paginated field.
+"""
+directive @complexity(
+  """
+  The analyzer class that gives the cost, looked up in
+  Config.namespaces[:analyzers]. It includes
+  Lighthouse::GraphQL::ComplexityAnalyzer and declares `complexity`.
+  """
+  resolver: String
+) on FIELD_DEFINITION
+
+"""
+Replaces incoming empty strings `""` with `null`.
+
+When used upon fields, empty strings for non-nullable inputs will pass unchanged.
+Only explicitly placing this on non-nullable inputs will force the conversion.
+"""
+directive @convertEmptyStringsToNull on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Return the number of records: of a model's table, or of a relation of the parent.
+The count honors `scopes`, @builder and the field's argument filters (@eq, @where, ...).
+"""
+directive @count(
+  """
+  The class name of the model whose records to count. Takes precedence over `relation`.
+  """
+  model: String
+
+  """
+  The relation of the parent to count. Defaults to the field's name, when the parent has it.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Create a model from the field's arguments, through ActiveRecord, so the model's validations apply.
+Nested input on its associations runs as nested mutations.
+On an argument or input field, it creates the record on that association of the parent.
+"""
+directive @create(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  On an argument or input field: the association of the parent model that its
+  mutation acts on. Defaults to the argument's name in snake_case.
+  """
+  relation: String
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Create many models, one per input of the field's single list argument.
+If any is invalid nothing is saved, and the errors of all are reported.
+"""
+directive @createMany(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  On an argument or input field: the association of the parent model that its
+  mutation acts on. Defaults to the argument's name in snake_case.
+  """
+  relation: String
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Delete the models the field's argument filters (@whereKey, @eq, ...) select, running their callbacks,
+and return them: a list for a list field, else the first or null. Refuses to run without a filter argument.
+"""
+directive @delete(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  On an argument or input field: the association of the parent model that its
+  mutation acts on. Defaults to the argument's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Ignore the user given value, don't pass it to the resolver.
+"""
+directive @drop on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Assign an internal value to an enum key.
+When dealing with the Enum type in your code,
+you will receive the defined value instead of the string key.
+"""
+directive @enum(
+  """
+  The internal value of the enum key.
+  """
+  value: Mixed
+) on ENUM_VALUE
+
+"""
+Add an equality filter to the query: the column equals the value.
+"""
+directive @eq(
+  """
+  The column to filter on. Defaults to the argument's name in snake_case.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Dispatch an event once the field has resolved. The event is built with the resolved value,
+which is returned unchanged. Nothing is dispatched if the field fails.
+"""
+directive @event(
+  """
+  The event class, looked up in Config.namespaces[:events]. A fully-qualified name is used as-is.
+  """
+  dispatch: String!
+) repeatable on FIELD_DEFINITION
+
+"""
+Include a field or an object type in the schema only while a feature flag is in a given state,
+for the actor of the request (Flipper by default, see Config.feature_checker).
+Otherwise, it is hidden from introspection and a query selecting it is invalid.
+"""
+directive @feature(
+  """
+  The name of the feature flag.
+  """
+  name: String!
+
+  """
+  The state the feature must be in for the element to be visible.
+  """
+  when: FeatureState = ACTIVE
+) on FIELD_DEFINITION | OBJECT
+
+"""
+Assign a resolver to a field: a class, or a class and a method separated by `@`
+("Statistics@users_total"). Without a method, the class resolves, or is called.
+"""
+directive @field(
+  """
+  Alias of `resolver`, used when `resolver` is not given.
+  """
+  class: String
+
+  """
+  The resolver: a class, or a class and a method separated by `@`. Required unless `class` is given.
+  """
+  resolver: String
+) on FIELD_DEFINITION
+
+"""
+Find a single record by the field's argument filters (@eq, @where, ...), or null.
+More than one match is an error. A lookup by `id` alone is batched.
+"""
+directive @find(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Get the first record that matches the field's argument filters (@eq, @where, ...),
+or null. Unlike @find, it does not fail when more than one record matches.
+"""
+directive @first(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Permanently remove one or more soft deleted models.
+"""
+directive @forceDelete(
+  """
+  Specify the class name of the model to use. This is only needed when the default model detection does not work.
+  """
+  model: String
+
+  """
+  Apply scopes to the underlying query.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Converts between IDs/types and global IDs.
+
+When used upon a field, it encodes;
+when used upon an argument, it decodes.
+"""
+directive @globalId(
+  """
+  Decoding a global id produces a tuple of `$type` and `$id`.
+  This setting controls which of those is passed along.
+  """
+  decode: GlobalIdDecode = ARRAY
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Require an authenticated user (see Config.authenticated_user) before the field resolves,
+else fail with "Unauthenticated.".
+"""
+directive @guard on FIELD_DEFINITION
+
+"""
+Resolve a one-to-many association of the parent (`has_many`) as a list,
+batch-loaded so that listing it for many parents is not an N+1.
+With `type`, the list is paginated.
+"""
+directive @hasMany(
+  """
+  The page size when the client omits `first`. Defaults to Config.pagination_default_count.
+  """
+  defaultCount: Int
+
+  """
+  The most records the client may ask for with `first`; null for no limit. Defaults to Config.pagination_max_count.
+  """
+  maxCount: Int
+
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+
+  """
+  How to paginate the list: PAGINATOR, SIMPLE or CONNECTION. Without it, the whole list is returned.
+  """
+  type: PaginateType
+) on FIELD_DEFINITION
+
+"""
+Resolve a one-to-many association of the parent that goes through another (`has_many :through`)
+as a list, batch-loaded so that listing it for many parents is not an N+1.
+With `type`, the list is paginated.
+"""
+directive @hasManyThrough(
+  """
+  The page size when the client omits `first`. Defaults to Config.pagination_default_count.
+  """
+  defaultCount: Int
+
+  """
+  The most records the client may ask for with `first`; null for no limit. Defaults to Config.pagination_max_count.
+  """
+  maxCount: Int
+
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+
+  """
+  How to paginate the list: PAGINATOR, SIMPLE or CONNECTION. Without it, the whole list is returned.
+  """
+  type: PaginateType
+) on FIELD_DEFINITION
+
+"""
+Resolve a one-to-one association of the parent (`has_one`),
+batch-loaded so that loading it for many parents is not an N+1.
+"""
+directive @hasOne(
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Resolve a one-to-one association of the parent that goes through another (`has_one :through`),
+batch-loaded so that loading it for many parents is not an N+1.
+"""
+directive @hasOneThrough(
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Hash an argument value with BCrypt (has_secure_password's), e.g. a password.
+"""
+directive @hash on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Excludes the annotated element from the schema conditionally.
+"""
+directive @hide(
+  """
+  Specify which environments must not use this field, e.g. ["production"].
+  """
+  env: [String!]!
+) on FIELD_DEFINITION
+
+"""
+Filter by a list of values: the column is one of them.
+"""
+directive @in(
+  """
+  The column to filter on. Defaults to the argument's name in snake_case.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Set an argument from the request's context, on the server, so clients cannot set it.
+"""
+directive @inject(
+  """
+  A path in the context, with dots: "current_user.id".
+  """
+  context: String!
+
+  """
+  The name of the argument to set, with dots for a nested one: "input.author_id".
+  """
+  name: String!
+) repeatable on FIELD_DEFINITION
+
+"""
+The class that picks the object type of this interface's values: `resolve_type(object, context)`
+or `call(object, context)`, returning a type name or a type class.
+"""
+directive @interface(
+  """
+  The class to call, looked up in Config.namespaces[:types]. A fully-qualified name is used as-is.
+  """
+  resolveType: String!
+) on INTERFACE
+
+"""
+Eager-load relations of the records the field returns.
+"""
+directive @lazyLoad(
+  """
+  The relations to load, nested with dots.
+  """
+  relations: [String!]!
+) repeatable on FIELD_DEFINITION
+
+"""
+Filter with SQL LIKE: the column contains the value, which is wrapped in wildcards.
+"""
+directive @like(
+  """
+  The column to filter on. Defaults to the argument's name in snake_case.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Allow clients to specify the maximum number of results to return when used on an argument,
+or statically limit them when used on a field.
+
+By default, this directive does not influence the number of results the resolver queries internally,
+but limits how much of it is returned to clients. Use the `builder` argument to change this.
+"""
+directive @limit(
+  """
+  You may set this to `true` if the field uses a query builder,
+  then this directive will apply a LIMIT clause to it.
+  Typically, this option should only be used for root fields,
+  as it may cause wrong results with batched relation queries.
+  """
+  builder: Boolean = false
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION
+
+"""
+Resolve a field by calling a method on the parent object.
+The field's arguments are passed to the method.
+"""
+directive @method(
+  """
+  The name of the method to call. Defaults to the field's name in snake_case.
+  """
+  name: String
+) on FIELD_DEFINITION
+
+"""
+Map a model class to an object type.
+This can be used when the name of the model differs from the name of the type.
+"""
+directive @model(
+  """
+  The class name of the corresponding model.
+  """
+  class: String!
+) on OBJECT
+
+"""
+Resolve a polymorphic one-to-many association of the parent (`has_many ..., as:`) as a list,
+batch-loaded so that listing it for many parents is not an N+1.
+With `type`, the list is paginated.
+"""
+directive @morphMany(
+  """
+  The page size when the client omits `first`. Defaults to Config.pagination_default_count.
+  """
+  defaultCount: Int
+
+  """
+  The most records the client may ask for with `first`; null for no limit. Defaults to Config.pagination_max_count.
+  """
+  maxCount: Int
+
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+
+  """
+  How to paginate the list: PAGINATOR, SIMPLE or CONNECTION. Without it, the whole list is returned.
+  """
+  type: PaginateType
+) on FIELD_DEFINITION
+
+"""
+Resolve a polymorphic one-to-one association of the parent (`has_one ..., as:`),
+batch-loaded so that loading it for many parents is not an N+1.
+"""
+directive @morphOne(
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Resolve a polymorphic inverse association of the parent (`belongs_to ..., polymorphic: true`),
+batch-loaded so that loading it for many parents is not an N+1.
+"""
+directive @morphTo(
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+Resolve a polymorphic many-to-many association of the parent as a list,
+batch-loaded so that listing it for many parents is not an N+1.
+With `type`, the list is paginated.
+"""
+directive @morphToMany(
+  """
+  The page size when the client omits `first`. Defaults to Config.pagination_default_count.
+  """
+  defaultCount: Int
+
+  """
+  The most records the client may ask for with `first`; null for no limit. Defaults to Config.pagination_max_count.
+  """
+  maxCount: Int
+
+  """
+  The name of the association on the parent model. Defaults to the field's name in snake_case.
+  """
+  relation: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+
+  """
+  How to paginate the list: PAGINATOR, SIMPLE or CONNECTION. Without it, the whole list is returned.
+  """
+  type: PaginateType
+) on FIELD_DEFINITION
+
+"""
+A no-op field resolver that allows nesting of queries and mutations.
+"""
+directive @namespaced on FIELD_DEFINITION
+
+"""
+Add an inequality filter to the query: the column differs from the value.
+"""
+directive @neq(
+  """
+  The column to filter on. Defaults to the argument's name in snake_case.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+On an argument of an input object type, apply the filters of the input's fields
+(@eq, @where, ...; at any depth, for those that carry @nest too) as if they were the field's own arguments.
+"""
+directive @nest on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Register a type for Relay's global object identification.
+
+When used without any arguments, Lighthouse will attempt
+to resolve the type through a model with the same name.
+"""
+directive @node(
+  """
+  Specify the class name of the model to use.
+  This is only needed when the default model detection does not work.
+
+  Mutually exclusive with `resolver`.
+  """
+  model: String
+
+  """
+  Reference to a class (and method, after `@`) that receives the decoded `id`
+  and the context, and returns the object.
+
+  Mutually exclusive with `model`.
+  """
+  resolver: String
+) on OBJECT
+
+"""
+Filter by a list of values: the column is none of them.
+"""
+directive @notIn(
+  """
+  The column to filter on. Defaults to the argument's name in snake_case.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Sort a result list by one or more given columns.
+"""
+directive @orderBy(
+  """
+  The database column for which the order by clause will be applied on.
+  Only used when the directive is added on a field.
+  """
+  column: String
+
+  """
+  Restrict the allowed column names to a well-defined list.
+  This improves introspection capabilities and security.
+  Mutually exclusive with `columnsEnum`.
+  Only used when the directive is added on an argument.
+  """
+  columns: [String!]
+
+  """
+  Use an existing enumeration type to restrict the allowed columns to a predefined list.
+  This allows you to re-use the same enum for multiple fields.
+  Mutually exclusive with `columns`.
+  Only used when the directive is added on an argument.
+  """
+  columnsEnum: String
+
+  """
+  The direction of the order by clause.
+  Only used when the directive is added on a field.
+  """
+  direction: OrderByDirection = ASC
+
+  """
+  Allow clients to sort by aggregates on relations.
+  Only used when the directive is added on an argument.
+  """
+  relations: [OrderByRelation!]
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION
+
+"""
+Query multiple model entries as a paginated list.
+The query is the model's, narrowed by `scopes`, @builder and the field's argument filters
+(@eq, @where, @orderBy, ...). On a nested field, it pages the parent's association of the same name.
+"""
+directive @paginate(
+  """
+  The page size when the client omits `first`. Defaults to Config.pagination_default_count.
+  """
+  defaultCount: Int
+
+  """
+  The most records the client may ask for with `first`; null for no limit. Defaults to Config.pagination_max_count.
+  """
+  maxCount: Int
+
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  Names of model scopes to apply to the underlying query, in order.
+  """
+  scopes: [String!]
+
+  """
+  Which pagination style to use.
+  """
+  type: PaginateType = PAGINATOR
+) on FIELD_DEFINITION
+
+"""
+Use another attribute than the name of the field, argument or input field.
+On a field, its value is read from that attribute of the parent object;
+on an argument, @create and @update write it to that attribute of the model.
+"""
+directive @rename(
+  """
+  The name of the attribute, in the model or the parent object.
+  """
+  attribute: String!
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Un-delete one or more soft deleted models.
+"""
+directive @restore(
+  """
+  Specify the class name of the model to use. This is only needed when the default model detection does not work.
+  """
+  model: String
+
+  """
+  Apply scopes to the underlying query.
+  """
+  scopes: [String!]
+) on FIELD_DEFINITION
+
+"""
+The class that reads and writes this scalar's values: coerce_input(value, context) and
+coerce_result(value, context), as a GraphQL::Schema::Scalar.
+"""
+directive @scalar(
+  """
+  The scalar class, looked up in Config.namespaces[:types]. A fully-qualified name is used as-is.
+  """
+  class: String!
+) on SCALAR
+
+"""
+Adds a scope to the query builder.
+The scope method will receive the client-given value of the argument as its argument.
+"""
+directive @scope(
+  """
+  The name of the scope. Defaults to the name of the argument.
+  """
+  name: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Includes the annotated element in the schema conditionally.
+"""
+directive @show(
+  """
+  Specify which environments may use this field, e.g. ["testing"].
+  """
+  env: [String!]!
+) on FIELD_DEFINITION
+
+"""
+Allows to filter if trashed elements should be fetched.
+This manipulates the schema by adding the argument
+`trashed: Trashed @trashed` to the field.
+"""
+directive @softDeletes on FIELD_DEFINITION
+
+"""
+On an argument of an input object type, merge the input's fields into the arguments
+the field's resolver or mutation receives, as if they were the field's own.
+"""
+directive @spread on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Reference a class to handle a field of the Subscription type: a GraphQL::Schema::Subscription.
+Without it, the field resolves to the class named after it, in Config.namespaces[:subscriptions].
+"""
+directive @subscription(
+  """
+  The subscription class, looked up in Config.namespaces[:subscriptions]. A fully-qualified name is used as-is.
+  """
+  class: String!
+) on FIELD_DEFINITION
+
+"""
+Sets rate limit to access the field, as Rails' rate_limit does for an action.
+"""
+directive @throttle(
+  """
+  As rate_limit's by: who the client is, a path in the context ("current_user.id"). Defaults to the client's IP.
+  """
+  by: String
+
+  """
+  Time in minutes to reset attempts.
+  """
+  decayMinutes: Float = 1.0
+
+  """
+  Maximum number of attempts in a specified time interval.
+  """
+  maxAttempts: Int = 60
+
+  """
+  As rate_limit's name: fields, and the controller's own rate_limit, of the same name count together. Defaults to the field.
+  """
+  name: String
+
+  """
+  As rate_limit's scope: what the count is shared across. Defaults to the controller's path.
+  """
+  prefix: String
+
+  """
+  As rate_limit's with: the controller's method to call past the limit. Defaults to rate_limit's: a 429.
+  """
+  with: String
+) on FIELD_DEFINITION
+
+"""
+Allows to filter if trashed elements should be fetched.
+"""
+directive @trashed on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Remove whitespace from the beginning and end of a given input.
+On a field, of every string input it takes.
+"""
+directive @trim on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+The class that picks the object type of this union's values: `resolve_type(object, context)`
+or `call(object, context)`, returning a type name or a type class.
+"""
+directive @union(
+  """
+  The class to call, looked up in Config.namespaces[:types]. A fully-qualified name is used as-is.
+  """
+  resolveType: String!
+) on UNION
+
+"""
+Update a model found by the primary key in the field's arguments, through ActiveRecord,
+so the model's validations apply. Nested input on its associations runs as nested mutations.
+On an argument or input field, it updates the record on that association of the parent.
+"""
+directive @update(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  On an argument or input field: the association of the parent model that its
+  mutation acts on. Defaults to the argument's name in snake_case.
+  """
+  relation: String
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Update many models, one per input of the field's single list argument, each carrying its primary key.
+If any is invalid nothing is saved, and the errors of all are reported.
+"""
+directive @updateMany(
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  On an argument or input field: the association of the parent model that its
+  mutation acts on. Defaults to the argument's name in snake_case.
+  """
+  relation: String
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Store the file an Upload argument carries with ActiveStorage, and pass along the
+signed id of its blob instead, which an attachment attribute (has_one_attached)
+attaches. This does not change the schema from a client perspective.
+"""
+directive @upload(
+  """
+  The ActiveStorage service to store the file on (config/storage.yml). Defaults to config.active_storage.service.
+  """
+  disk: String
+
+  """
+  The directory the stored file's key starts with.
+  """
+  path: String = "/"
+
+  """
+  Whether the file is public. ActiveStorage sets that per service, so it must agree with the service's.
+  """
+  public: Boolean = false
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Update the model the arguments identify (by `identifyingColumns`, else the primary key), or create it.
+Saved through ActiveRecord, so the model's validations apply.
+"""
+directive @upsert(
+  """
+  The columns whose values in the input identify an existing model to update.
+  Defaults to the primary key. Must not be empty.
+  """
+  identifyingColumns: [String!]
+
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  On an argument or input field: the association of the parent model that its
+  mutation acts on. Defaults to the argument's name in snake_case.
+  """
+  relation: String
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Upsert many models, one per input of the field's single list argument.
+If any is invalid nothing is saved, and the errors of all are reported.
+"""
+directive @upsertMany(
+  """
+  The columns whose values in the input identify an existing model to update.
+  Defaults to the primary key. Must not be empty.
+  """
+  identifyingColumns: [String!]
+
+  """
+  The class name of the model to use. Defaults to the model of another directive on the field, else the field's return type.
+  """
+  model: String
+
+  """
+  On an argument or input field: the association of the parent model that its
+  mutation acts on. Defaults to the argument's name in snake_case.
+  """
+  relation: String
+) on ARGUMENT_DEFINITION | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Validate the arguments of a field, or the values of an input type, with a contract class
+before the field resolves. Failures are reported keyed by argument path.
+"""
+directive @validator(
+  """
+  The contract class, looked up in Config.namespaces[:validators]. Defaults to
+  Validators::<ParentType>::<FieldName>Validator on a field, and to
+  Validators::<InputType>Validator on an input type.
+  """
+  class: String
+) on FIELD_DEFINITION | INPUT_OBJECT
+
+"""
+Add a where condition to the query: the column compares to the value with an operator.
+"""
+directive @where(
+  """
+  The column to filter on. Defaults to the argument's name in snake_case.
+  """
+  key: String
+
+  """
+  The comparison: EQ (default), NEQ, GT, GTE, LT, LTE, IN, NIN, CONTAINS, STARTS_WITH, ENDS_WITH, IS_NULL or IS_NOT_NULL.
+  """
+  operator: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Filter a type to only return instances owned by the current user.
+"""
+directive @whereAuth(
+  """
+  Accepted for PHP Lighthouse parity: the user is Config.authenticated_user's.
+  """
+  guards: [String!]
+
+  """
+  The relation of the model that links it to the user: a belongs_to, a has_many, a :through.
+  """
+  relation: String!
+) on FIELD_DEFINITION
+
+"""
+Verify that a column's value is between two values: the argument's two input fields, in order.
+"""
+directive @whereBetween(
+  """
+  The database column. Defaults to the argument's name.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Add a dynamically client-controlled WHERE condition to a fields query.
+"""
+directive @whereConditions(
+  """
+  Restrict the allowed column names to a well-defined list.
+  This improves introspection capabilities and security.
+  Mutually exclusive with `columnsEnum`.
+  """
+  columns: [String!]
+
+  """
+  Use an existing enumeration type to restrict the allowed columns to a predefined list.
+  This allows you to re-use the same enum for multiple fields.
+  Mutually exclusive with `columns`.
+  """
+  columnsEnum: String
+
+  """
+  A class that applies the client given conditions to the query: `call(relation, conditions)`
+  answers the relation. "Class@method" names another method. Looked up in the builders namespaces.
+  """
+  handler: String
+) on ARGUMENT_DEFINITION
+
+"""
+Allows clients to filter a query based on the existence of a related model, using
+a dynamically controlled `WHERE` condition that applies to the relationship.
+"""
+directive @whereHasConditions(
+  """
+  Restrict the allowed column names to a well-defined list.
+  This improves introspection capabilities and security.
+  Mutually exclusive with `columnsEnum`.
+  """
+  columns: [String!]
+
+  """
+  Use an existing enumeration type to restrict the allowed columns to a predefined list.
+  This allows you to re-use the same enum for multiple fields.
+  Mutually exclusive with `columns`.
+  """
+  columnsEnum: String
+
+  """
+  A class that applies the client given conditions to the query: `call(relation, conditions)`
+  answers the relation. "Class@method" names another method. Looked up in the builders namespaces.
+  """
+  handler: String
+
+  """
+  The relationship that the conditions will be applied to.
+  This argument can be omitted if the argument name follows the naming
+  convention `has{$RELATION}`. For example, if the relationship
+  is named `posts`, the argument name must be `hasPosts`.
+  """
+  relation: String
+) on ARGUMENT_DEFINITION
+
+"""
+Use an input value as a whereJsonContains filter.
+"""
+directive @whereJsonContains(
+  """
+  The JSON column, optionally with a path into it: "options->tags". Defaults to the argument's name.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Filter by the model's primary key, whatever its column is named. A list matches any of its values.
+"""
+directive @whereKey on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Verify that a column's value lies outside two values: the argument's two input fields, in order.
+"""
+directive @whereNotBetween(
+  """
+  The database column. Defaults to the argument's name.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Filter the value is not null: true keeps the rows where the column is not null, false the others.
+"""
+directive @whereNotNull(
+  """
+  The database column. Defaults to the argument's name.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Filter the value is null: true keeps the rows where the column is null, false the others.
+"""
+directive @whereNull(
+  """
+  The database column. Defaults to the argument's name.
+  """
+  key: String
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Eager-load a relation of the parent before the field resolves, for every parent at once.
+"""
+directive @with(
+  """
+  The relation to load, nested with dots. Defaults to the field's name.
+  """
+  relation: String
+
+  """
+  Model scopes that narrow the loaded records.
+  """
+  scopes: [String!]
+) repeatable on FIELD_DEFINITION
+
+"""
+Count a relation of the parent before the field resolves, for every parent at once,
+and keep the count on it as `<relation>_count`.
+"""
+directive @withCount(
+  """
+  The relation to count.
+  """
+  relation: String!
+
+  """
+  Model scopes that narrow the counted records.
+  """
+  scopes: [String!]
+) repeatable on FIELD_DEFINITION
+
+"""
+Omit any number of global scopes from the query builder.
+
+This directive should be used on arguments of type `Boolean`.
+The scopes will be removed only if `true` is passed by the client.
+"""
+directive @withoutGlobalScopes(
+  """
+  The names of the global scopes to omit.
+  """
+  names: [String!]!
+) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+"""
+Any constant literal value: https://graphql.github.io/graphql-spec/draft/#sec-Input-Values
+"""
+scalar BuilderValue
+
+"""
+Who a cached response may be shared with.
+"""
+enum CacheControlScope {
+  """
+  Specific to the user: only the user's own client may store it.
+  """
+  PRIVATE
+
+  """
+  The same for every user: shared caches (CDNs, proxies) may store it.
+  """
+  PUBLIC
+}
+
+"""
+What a @can* directive does when the policy denies the ability.
+"""
+enum CanAction {
+  """
+  Throw a generic "This action is unauthorized." error, concealing the real one.
+  """
+  EXCEPTION_NOT_AUTHORIZED
+
+  """
+  Pass the error to the client.
+  """
+  EXCEPTION_PASS
+
+  """
+  Return the value of returnValue instead of resolving the field.
+  """
+  RETURN_VALUE
+}
+
+"""
+Any constant literal value: https://graphql.github.io/graphql-spec/draft/#sec-Input-Values
+"""
+scalar CanArgs
+
+"""
+Where @clearCache finds the ids to clear. Exactly one of the fields must be given.
+"""
+input ClearCacheIdSource {
+  """
+  Path of an argument the field is applied to, e.g. "input.id".
+  """
+  argument: String
+
+  """
+  Path of a field in the result, e.g. "*.id" for a list.
+  """
+  field: String
+}
+
+type Comment implements Node @node {
+  author: User! @belongsTo
+  body: String!
+  createdAt: DateTime!
+  id: ID! @globalId
+  post: Post! @belongsTo
+  updatedAt: DateTime!
+
+  """
+  Whether the signed-in user may delete it: CommentPolicy#destroy?.
+  """
+  viewerCanDelete: Boolean!
+
+  """
+  Whether the signed-in user may edit it: CommentPolicy#update?.
+  """
+  viewerCanUpdate: Boolean!
+}
+
+"""
+A paginated list of Comment edges.
+"""
+type CommentConnection {
+  """
+  A list of Comment edges.
+  """
+  edges: [CommentEdge!]!
+
+  """
+  Pagination information about the list of edges.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An edge that contains a node of type Comment and a cursor.
+"""
+type CommentEdge {
+  """
+  A unique cursor that can be used for pagination.
+  """
+  cursor: String!
+
+  """
+  The Comment node.
+  """
+  node: Comment!
+}
+
+input CreateCommentInput {
+  body: String!
+  postId: ID! @globalId(decode: ID)
+}
+
+input CreatePostInput {
+  active: Boolean
+  content: String!
+  name: String!
+}
+
+scalar DateTime
+
+"""
+Options for the `when` argument of `@feature`.
+"""
+enum FeatureState {
+  """
+  Indicates an active feature.
+  """
+  ACTIVE
+
+  """
+  Indicates an inactive feature.
+  """
+  INACTIVE
+}
+
+"""
+Options for the `decode` argument of `@globalId`.
+"""
+enum GlobalIdDecode {
+  """
+  Return an array of `[$type, $id]`.
+  """
+  ARRAY
+
+  """
+  Return just `$id`.
+  """
+  ID
+
+  """
+  Return just `$type`.
+  """
+  TYPE
+}
+
+scalar JSON
+
+"""
+Loose type that allows any value. Be careful when passing in large JSON objects, as it may result in poor performance.
+"""
+scalar Mixed
+
+type Mutation {
+  """
+  Comment on a post as the signed-in user.
+  """
+  createComment(input: CreateCommentInput! @spread): Comment @guard @canModel(ability: "create") @create @inject(context: "current_user.id", name: "author_id")
+  createPost(input: CreatePostInput! @spread): Post @guard @canModel(ability: "create") @create @inject(context: "current_user.id", name: "author_id")
+
+  """
+  Delete a comment: its author, the post's author or an admin.
+  """
+  deleteComment(id: ID! @globalId(decode: ID) @whereKey): Comment @guard @canFind(ability: "destroy", find: "id") @delete
+
+  """
+  Like a post as the signed-in user. Liking it again changes nothing. Mutations::LikePost.
+  """
+  likePost(id: ID!): Post @guard
+  sendWebhookEvent(input: SendWebhookEventInput!): SendWebhookEventResponse!
+
+  """
+  Take back the signed-in user's like. Mutations::UnlikePost.
+  """
+  unlikePost(id: ID!): Post @guard
+
+  """
+  Edit one of the signed-in user's comments.
+  """
+  updateComment(input: UpdateCommentInput! @spread): Comment @guard @canFind(ability: "update", find: "input.id") @update
+  updatePost(input: UpdatePostInput! @spread): Post @guard @canModel(ability: "update") @update
+
+  """
+  Change a user's role. Admins only, and never their own.
+  """
+  updateUserRole(id: ID!, role: UserRole!): User @guard
+}
+
+"""
+An object with an ID.
+"""
+interface Node {
+  """
+  ID of the object.
+  """
+  id: ID!
+}
+
+"""
+Options for the `direction` argument of `@orderBy`.
+"""
+enum OrderByDirection {
+  """
+  Sort in ascending order.
+  """
+  ASC
+
+  """
+  Sort in descending order.
+  """
+  DESC
+}
+
+"""
+Options for the `relations` argument of `@orderBy`.
+"""
+input OrderByRelation {
+  """
+  Restrict the allowed column names to a well-defined list.
+  This improves introspection capabilities and security.
+  Mutually exclusive with `columnsEnum`.
+  """
+  columns: [String!]
+
+  """
+  Use an existing enumeration type to restrict the allowed columns to a predefined list.
+  This allows you to re-use the same enum for multiple fields.
+  Mutually exclusive with `columns`.
+  """
+  columnsEnum: String
+
+  """
+  Name of the relation.
+  """
+  relation: String!
+}
+
+"""
+Information about pagination using a Relay style cursor connection.
+"""
+type PageInfo {
+  """
+  Number of nodes in the current page.
+  """
+  count: Int!
+
+  """
+  Index of the current page.
+  """
+  currentPage: Int!
+
+  """
+  The cursor to continue paginating forwards.
+  """
+  endCursor: String
+
+  """
+  When paginating forwards, are there more items?
+  """
+  hasNextPage: Boolean!
+
+  """
+  When paginating backwards, are there more items?
+  """
+  hasPreviousPage: Boolean!
+
+  """
+  Index of the last available page.
+  """
+  lastPage: Int!
+
+  """
+  The cursor to continue paginating backwards.
+  """
+  startCursor: String
+
+  """
+  Total number of nodes in the paginated connection.
+  """
+  total: Int!
+}
+
+"""
+The type of pagination a field uses.
+"""
+enum PaginateType {
+  """
+  Cursor-based pagination, compatible with the Relay specification.
+  """
+  CONNECTION
+
+  """
+  Offset-based pagination with page numbers and a total, like Laravel's LengthAwarePaginator.
+  """
+  PAGINATOR
+
+  """
+  Offset-based pagination without a total count, which saves a query.
+  """
+  SIMPLE
+}
+
+type Post implements Node @node {
+  active: Boolean
+  author: User @belongsTo
+
+  """
+  Oldest first, unless orderBy says otherwise.
+  """
+  comments(
+    """
+    A cursor after which elements are returned.
+    """
+    after: String
+
+    """
+    Limits number of fetched items.
+    """
+    first: Int! = 10
+
+    """
+    Order by clause for Post.comments.orderBy.
+    """
+    orderBy: [PostCommentsOrderByOrderByClause!] @orderBy(columns: ["created_at"])
+  ): CommentConnection! @hasMany(type: CONNECTION, defaultCount: 10, maxCount: 50)
+  commentsCount: Int!
+  content: String!
+  createdAt: DateTime!
+  id: ID! @globalId
+
+  """
+  How many users like the post.
+  """
+  likesCount: Int!
+  name: String!
+
+  """
+  The post's page in the app (/posts/:id): Types::PostType#path.
+  """
+  path: String!
+  updatedAt: DateTime!
+
+  """
+  Whether the signed-in user likes the post; false for guests. Types::PostType#viewer_has_liked.
+  """
+  viewerHasLiked: Boolean!
+}
+
+"""
+Allowed column names for Post.comments.orderBy.
+"""
+enum PostCommentsOrderByColumn {
+  CREATED_AT @enum(value: "created_at")
+}
+
+"""
+Order by clause for Post.comments.orderBy.
+"""
+input PostCommentsOrderByOrderByClause {
+  """
+  The column that is used for ordering.
+  """
+  column: PostCommentsOrderByColumn!
+
+  """
+  The direction that is used for ordering.
+  """
+  order: SortOrder!
+}
+
+"""
+A paginated list of Post edges.
+"""
+type PostConnection {
+  """
+  A list of Post edges.
+  """
+  edges: [PostEdge!]!
+
+  """
+  Pagination information about the list of edges.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An edge that contains a node of type Post and a cursor.
+"""
+type PostEdge {
+  """
+  A unique cursor that can be used for pagination.
+  """
+  cursor: String!
+
+  """
+  The Post node.
+  """
+  node: Post!
+}
+
+"""
+Indicates what fields are available at the top level of a query operation.
+"""
+type Query {
+  """
+  The signed-in user, identified by the bearer JWT.
+  """
+  me: User @guard
+
+  """
+  Fetches an object given its ID. Resolved by Types::QueryType#node, with BlogRailsSchema.object_from_id.
+  """
+  node(
+    """
+    ID of the object.
+    """
+    id: ID!
+  ): Node
+
+  """
+  Fetches a list of objects given a list of IDs. Resolved by Types::QueryType#nodes.
+  """
+  nodes(
+    """
+    IDs of the objects.
+    """
+    ids: [ID!]!
+  ): [Node]
+
+  """
+  A post by its global id. Authorized by PostPolicy#show?.
+  """
+  post(id: ID! @globalId(decode: ID) @eq): Post @find @canResolved(ability: "show")
+  posts(
+    """
+    A cursor after which elements are returned.
+    """
+    after: String
+
+    """
+    Limits number of fetched items.
+    """
+    first: Int!
+
+    """
+    Order by clause for Query.posts.orderBy.
+    """
+    orderBy: [QueryPostsOrderByOrderByClause!] @orderBy(columns: ["created_at", "name", "id"])
+  ): PostConnection! @paginate(type: CONNECTION, scopes: ["active"]) @canModel(ability: "index")
+
+  """
+  Every user. Admins only.
+  """
+  users(
+    """
+    A cursor after which elements are returned.
+    """
+    after: String
+
+    """
+    Limits number of fetched items.
+    """
+    first: Int!
+  ): UserConnection! @paginate(type: CONNECTION) @guard @canModel(ability: "index")
+}
+
+"""
+Allowed column names for Query.posts.orderBy.
+"""
+enum QueryPostsOrderByColumn {
+  CREATED_AT @enum(value: "created_at")
+  ID @enum(value: "id")
+  NAME @enum(value: "name")
+}
+
+"""
+Order by clause for Query.posts.orderBy.
+"""
+input QueryPostsOrderByOrderByClause {
+  """
+  The column that is used for ordering.
+  """
+  column: QueryPostsOrderByColumn!
+
+  """
+  The direction that is used for ordering.
+  """
+  order: SortOrder!
+}
+
+input SendWebhookEventInput {
+  clientMutationId: String
+  eventName: String!
+  payload: JSON!
+}
+
+type SendWebhookEventResponse {
+  message: String
+  success: Boolean!
+}
+
+"""
+Directions for ordering a list of records.
+"""
+enum SortOrder {
+  """
+  Sort records in ascending order.
+  """
+  ASC
+
+  """
+  Sort records in descending order.
+  """
+  DESC
+}
+
+input UpdateCommentInput {
+  body: String!
+  id: ID! @globalId(decode: ID)
+}
+
+input UpdatePostInput {
+  active: Boolean
+  content: String
+  id: ID!
+  name: String
+}
+
+type User implements Node @node {
+  avatarUrl: String
+  createdAt: DateTime!
+
+  """
+  Only visible to the user themselves and to admins; null for everyone else.
+  """
+  email: String @canRoot(ability: "view_email", action: RETURN_VALUE)
+  id: ID! @globalId
+  name: String!
+  posts(
+    """
+    A cursor after which elements are returned.
+    """
+    after: String
+
+    """
+    Limits number of fetched items.
+    """
+    first: Int!
+  ): PostConnection! @hasMany(type: CONNECTION)
+  role: UserRole!
+  updatedAt: DateTime!
+}
+
+"""
+A paginated list of User edges.
+"""
+type UserConnection {
+  """
+  A list of User edges.
+  """
+  edges: [UserEdge!]!
+
+  """
+  Pagination information about the list of edges.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An edge that contains a node of type User and a cursor.
+"""
+type UserEdge {
+  """
+  A unique cursor that can be used for pagination.
+  """
+  cursor: String!
+
+  """
+  The User node.
+  """
+  node: User!
+}
+
+enum UserRole {
+  ADMIN @enum(value: "admin")
+  AUTHOR @enum(value: "author")
+  READER @enum(value: "reader")
+}

@@ -15,3 +15,23 @@ if admin_password
 else
   puts "Skipping the admin user: set SEED_ADMIN_PASSWORD to seed it in production."
 end
+
+# Development: enough posts, likes and comments to scroll the feed. Only once there are
+# fewer than 30 posts, so rerunning the seeds adds nothing.
+if Rails.env.development? && Post.count < 30
+  people = [ [ "Ana Souza", "ana@acme.inc" ], [ "Bruno Lima", "bruno@acme.inc" ], [ "Carla Dias", "carla@acme.inc" ],
+             [ "Diego Rocha", "diego@acme.inc" ], [ "Elisa Melo", "elisa@acme.inc" ] ].map do |name, email|
+    User.find_or_create_by!(email: email) { _1.name = name; _1.role = :author }
+  end
+  topics = [ "Shipping Rails 8", "Inertia without an API", "GraphQL at the edge", "Weekend in Lisbon", "Coffee rituals",
+             "SQLite in production", "Why we SSR", "Apollo cache tips", "A walk by the river", "Hotwire or React?" ]
+  sentences = [ "It went better than expected.", "Here is what we learned.", "Small steps, every day.",
+                "The details matter more than the plan.", "Would do it again.", "Thoughts welcome below." ]
+
+  40.times do |i|
+    post = Post.create!(name: "#{topics[i % topics.size]} ##{i + 1}", content: sentences.sample(3).join(" "),
+                        author: people.sample, created_at: (40 - i).hours.ago)
+    people.sample(rand(0..people.size)).each { post.likes.create!(user: _1) }
+    rand(0..6).times { |n| post.comments.create!(author: people.sample, body: sentences.sample, created_at: post.created_at + (n + 1).minutes) }
+  end
+end

@@ -1,9 +1,9 @@
 module Admin
-  # The page only renders the shell; the users list and role changes go through GraphQL.
+  # The first page of users comes from UsersPage; more pages and role changes go through /graphql.
   class UsersController < InertiaController
     def index
       authorize User
-      render inertia: {}
+      render_preloaded
     end
   end
 end

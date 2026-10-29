@@ -45,3 +45,4 @@ node_modules
 # https://vite.dev/guide/env-and-mode.html#env-files
 *.local
 
+app/javascript/graphql/generated

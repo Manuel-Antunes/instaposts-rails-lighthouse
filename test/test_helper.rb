@@ -2,6 +2,12 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 
+# render_preloaded reads the pages' GraphQL operations from the Vite manifest, which
+# vite_ruby's autoBuild builds when stale. Build it once here, before the workers fork.
+if ViteRuby.config.auto_build && !ViteRuby.instance.dev_server_running?
+  ViteRuby.instance.builder.build || abort("The Vite build for the tests failed")
+end
+
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
@@ -38,6 +44,16 @@ module InertiaTestHelper
   end
 end
 
+module GraphqlTestHelper
+  # POST /graphql as the API clients do: a bearer JWT for `as`, none for a guest.
+  def gql(query, as: nil, variables: {})
+    headers = as ? { "Authorization" => "Bearer #{AuthToken.encode(as)}" } : {}
+    post "/graphql", params: { query: query, variables: variables }, headers: headers, as: :json
+    response.parsed_body
+  end
+end
+
 class ActionDispatch::IntegrationTest
   include InertiaTestHelper
+  include GraphqlTestHelper
 end
