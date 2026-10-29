@@ -1,0 +1,30 @@
+enum UserRole {
+  READER @enum(value: "reader")
+  AUTHOR @enum(value: "author")
+  ADMIN @enum(value: "admin")
+}
+
+type User implements Node @node {
+  id: ID! @globalId
+  name: String!
+  "Only visible to the user themselves and to admins; null for everyone else."
+  email: String @canRoot(ability: "view_email", action: RETURN_VALUE)
+  avatarUrl: String
+  role: UserRole!
+  posts: [Post!]! @hasMany(type: CONNECTION)
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+extend type Query {
+  "Every user. Admins only."
+  users: [User!]! @paginate(type: CONNECTION) @guard @canModel(ability: "index")
+
+  "The signed-in user, identified by the bearer JWT."
+  me: User @guard
+}
+
+extend type Mutation {
+  "Change a user's role. Admins only, and never their own."
+  updateUserRole(id: ID!, role: UserRole!): User @guard
+}

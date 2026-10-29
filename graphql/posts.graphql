@@ -1,16 +1,17 @@
-
 type Post implements Node @node {
   id: ID! @globalId
   name: String!
   content: String!
   active: Boolean
+  author: User @belongsTo
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
-
 extend type Query {
-  posts: [Post!]! @paginate(type: CONNECTION)
+  posts(orderBy: _ @orderBy(columns: ["created_at", "name"])): [Post!]!
+    @paginate(type: CONNECTION, scopes: ["active"])
+    @canModel(ability: "index")
 }
 
 input CreatePostInput {
@@ -19,6 +20,21 @@ input CreatePostInput {
   active: Boolean
 }
 
+input UpdatePostInput {
+  id: ID!
+  name: String
+  content: String
+  active: Boolean
+}
+
 extend type Mutation {
-  createPost(input: CreatePostInput! @spread): Post @create
+  createPost(input: CreatePostInput! @spread): Post
+    @guard
+    @canModel(ability: "create")
+    @create
+    @inject(context: "current_user.id", name: "author_id")
+  updatePost(input: UpdatePostInput! @spread): Post
+    @guard
+    @canModel(ability: "update")
+    @update
 }

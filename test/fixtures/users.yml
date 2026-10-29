@@ -1,0 +1,14 @@
+reader:
+  name: Rita Reader
+  email: reader@example.com
+  role: 0
+
+author:
+  name: Alice Author
+  email: author@example.com
+  role: 1
+
+admin:
+  name: Adam Admin
+  email: admin@example.com
+  role: 2

@@ -1,11 +1,19 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  name: MyString
+  name: First
   content: MyText
-  active: false
+  active: true
+  author: author
 
 two:
-  name: MyString
+  name: Second
   content: MyText
-  active: false
+  active: true
+  author: author
+
+by_admin:
+  name: Admin post
+  content: MyText
+  active: true
+  author: admin

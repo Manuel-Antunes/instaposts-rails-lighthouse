@@ -4,6 +4,7 @@
 # (#import user.graphql), which add their fields with `extend type Query`.
 # Directives reference: https://github.com/Vaz-Innovation/lighthouse-graphql/blob/main/docs/directives.md
 
+#import users.graphql
 #import posts.graphql
 #import webhooks.graphql
 

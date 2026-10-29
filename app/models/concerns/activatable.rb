@@ -5,6 +5,8 @@ module Activatable
     before_validation :activate, on: :create
 
     validates :active, inclusion: { in: [ true, false ] }
+
+    scope :active, -> { where(active: true) }
   end
 
   private
