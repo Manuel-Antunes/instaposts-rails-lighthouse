@@ -31,4 +31,11 @@ class ApplicationPolicy
 
     attr_reader :user, :scope
   end
+
+  private
+
+  # Writing (posting, liking, commenting) waits for a confirmed email.
+  def confirmed? = user.present? && user.confirmed?
+
+  def admin? = user.present? && user.admin?
 end

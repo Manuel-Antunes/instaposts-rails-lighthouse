@@ -76,3 +76,5 @@ gem "inertia_rails", "~> 3.23"
 gem "vite_rails", "~> 3.11"
 
 gem "bcrypt", "~> 3.1"
+
+gem "discard", "~> 1.4"

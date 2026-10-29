@@ -9,6 +9,8 @@ export type AuthUser = {
   email: string
   avatar_url: string | null
   role: 'reader' | 'author' | 'admin'
+  // Liking, commenting and posting wait for a confirmed email.
+  confirmed: boolean
   can_create_post: boolean
 }
 

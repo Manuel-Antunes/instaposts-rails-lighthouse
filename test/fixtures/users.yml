@@ -2,13 +2,16 @@ reader:
   name: Rita Reader
   email: reader@example.com
   role: 0
+  confirmed_at: <%= 1.week.ago.to_fs(:db) %>
 
 author:
   name: Alice Author
   email: author@example.com
   role: 1
+  confirmed_at: <%= 1.week.ago.to_fs(:db) %>
 
 admin:
   name: Adam Admin
   email: admin@example.com
   role: 2
+  confirmed_at: <%= 1.week.ago.to_fs(:db) %>

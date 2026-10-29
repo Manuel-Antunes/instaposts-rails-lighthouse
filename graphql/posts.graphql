@@ -2,7 +2,6 @@ type Post implements Node @node {
   id: ID! @globalId
   name: String!
   content: String!
-  active: Boolean
   author: User @belongsTo
   "The post's page in the app (/posts/:id): Types::PostType#path."
   path: String!
@@ -14,6 +13,10 @@ type Post implements Node @node {
   "Oldest first, unless orderBy says otherwise."
   comments(orderBy: _ @orderBy(columns: ["created_at"])): [Comment!]!
     @hasMany(type: CONNECTION, defaultCount: 10, maxCount: 50)
+  "Whether the signed-in user may move it to the trash: PostPolicy#destroy?."
+  viewerCanDelete: Boolean!
+  "When it went to the trash; null for a live post."
+  deletedAt: DateTime @rename(attribute: "discarded_at")
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -22,22 +25,22 @@ extend type Query {
   "A post by its global id. Authorized by PostPolicy#show?."
   post(id: ID! @globalId(decode: ID) @eq): Post @find @canResolved(ability: "show")
 
+  "Live posts. trashed: ONLY or WITH lists the trash too: admins only (PostPolicy#index?)."
   posts(orderBy: _ @orderBy(columns: ["created_at", "name", "id"])): [Post!]!
-    @paginate(type: CONNECTION, scopes: ["active"])
-    @canModel(ability: "index")
+    @paginate(type: CONNECTION)
+    @softDeletes
+    @canModel(ability: "index", injectArgs: true)
 }
 
 input CreatePostInput {
   name: String!
   content: String!
-  active: Boolean
 }
 
 input UpdatePostInput {
   id: ID!
   name: String
   content: String
-  active: Boolean
 }
 
 extend type Mutation {
@@ -56,4 +59,19 @@ extend type Mutation {
 
   "Take back the signed-in user's like. Mutations::UnlikePost."
   unlikePost(id: ID!): Post @guard
+
+  "Move a post to the trash (discard): its author or an admin. Mutations::DeletePost."
+  deletePost(id: ID!): Post @guard
+
+  "Bring a post back from the trash. Admins only."
+  restorePost(id: ID! @globalId(decode: ID) @whereKey): Post
+    @guard
+    @canModel(ability: "restore")
+    @restore
+
+  "Delete a trashed post for good, with its likes and comments. Admins only."
+  forceDeletePost(id: ID! @globalId(decode: ID) @whereKey): Post
+    @guard
+    @canModel(ability: "force_delete")
+    @forceDelete
 }

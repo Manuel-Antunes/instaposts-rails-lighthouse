@@ -11,6 +11,7 @@ if admin_password
   User.find_or_create_by!(email: "john@acme.inc") do |user|
     user.name = "John Doe"
     user.password = admin_password
+    user.confirmed_at = Time.current
   end.admin!
 else
   puts "Skipping the admin user: set SEED_ADMIN_PASSWORD to seed it in production."
@@ -21,7 +22,7 @@ end
 if Rails.env.development? && Post.count < 30
   people = [ [ "Ana Souza", "ana@acme.inc" ], [ "Bruno Lima", "bruno@acme.inc" ], [ "Carla Dias", "carla@acme.inc" ],
              [ "Diego Rocha", "diego@acme.inc" ], [ "Elisa Melo", "elisa@acme.inc" ] ].map do |name, email|
-    User.find_or_create_by!(email: email) { _1.name = name; _1.role = :author }
+    User.find_or_create_by!(email: email) { _1.name = name; _1.role = :author; _1.confirmed_at = Time.current }
   end
   topics = [ "Shipping Rails 8", "Inertia without an API", "GraphQL at the edge", "Weekend in Lisbon", "Coffee rituals",
              "SQLite in production", "Why we SSR", "Apollo cache tips", "A walk by the river", "Hotwire or React?" ]

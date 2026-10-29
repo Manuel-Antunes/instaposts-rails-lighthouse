@@ -35,7 +35,7 @@ function messageOf(error: unknown) {
  * (addComment) and its count goes up, wherever they are shown.
  */
 export default function CommentForm({ postId, inputRef, className }: { postId: string; inputRef?: RefObject<HTMLInputElement | null>; className?: string }) {
-  const signedIn = !!usePage().props.auth.user
+  const user = usePage().props.auth.user
   const [body, setBody] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [create, { loading }] = useMutation(CREATE_COMMENT, {
@@ -45,7 +45,10 @@ export default function CommentForm({ postId, inputRef, className }: { postId: s
     },
   })
 
-  if (!signedIn) {
+  if (user && !user.confirmed) {
+    return <p className={cn('text-sm text-muted-foreground', className)}>Confirm your email to comment.</p>
+  }
+  if (!user) {
     return (
       <p className={cn('text-sm text-muted-foreground', className)}>
         <Link href="/login" className="font-semibold text-foreground">

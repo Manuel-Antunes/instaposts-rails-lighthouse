@@ -5,8 +5,8 @@ class CommentPolicy < ApplicationPolicy
   def index? = true
   def show? = true
 
-  # Anyone signed in can comment.
-  def create? = user.present?
+  # Anyone with a confirmed email comments.
+  def create? = confirmed?
 
   # Only its author edits a comment.
   def update? = user.present? && record.author_id == user.id

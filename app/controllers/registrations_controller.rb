@@ -1,4 +1,4 @@
-# Email and password sign-up. New users start as readers.
+# Email and password sign-up. New users start as readers, with their email to confirm.
 class RegistrationsController < InertiaController
   rate_limit to: 10, within: 3.minutes, only: :create,
              with: -> { redirect_to signup_path, alert: "Too many attempts. Try again later." }
@@ -13,8 +13,9 @@ class RegistrationsController < InertiaController
     user = User.new(params.permit(:name, :email, :password, :password_confirmation))
 
     if user.save(context: :signup)
+      UserMailer.confirmation(user).deliver_later
       sign_in(user)
-      redirect_to root_path, notice: "Welcome, #{user.name}."
+      redirect_to root_path, notice: "Welcome, #{user.name}. Check your email to confirm it."
     else
       redirect_to signup_path, inertia: { errors: user.errors }
     end

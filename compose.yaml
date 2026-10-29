@@ -1,0 +1,10 @@
+# Services for development: `docker compose up -d`.
+services:
+  # Catches every email the app sends in development (confirmation, password reset).
+  # SMTP on localhost:1025 (config/environments/development.rb); read them at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.32
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    restart: unless-stopped

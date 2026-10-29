@@ -49,8 +49,8 @@ class GraphqlTest < ActionDispatch::IntegrationTest
     assert_equal 3, result.dig("data", "posts", "edges").size
   end
 
-  test "posts only lists active posts" do
-    posts(:two).update!(active: false)
+  test "posts only lists live posts" do
+    posts(:two).discard!
 
     names = gql("{ posts(first: 10) { edges { node { name } } } }").dig("data", "posts", "edges").map { _1.dig("node", "name") }
     assert_equal [ "Admin post", "First" ], names.sort

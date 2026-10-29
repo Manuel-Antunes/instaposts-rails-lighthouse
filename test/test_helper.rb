@@ -53,7 +53,16 @@ module GraphqlTestHelper
   end
 end
 
+module MailTestHelper
+  # The path of the first link to this app in the last email sent.
+  def link_in_last_email
+    ActionMailer::Base.deliveries.last.text_part.body.to_s[%r{http://example\.com(/\S+)}, 1]
+  end
+end
+
 class ActionDispatch::IntegrationTest
   include InertiaTestHelper
   include GraphqlTestHelper
+  include MailTestHelper
+  include ActionMailer::TestHelper
 end

@@ -48,9 +48,16 @@ class BlogRailsSchema < Lighthouse::GraphQL::RbLightHouse.get_schema(
     object.to_gid_param
   end
 
-  # Given a string UUID, find the object
+  # Given a string UUID, find the object. Trashed posts too: @globalId(decode: ID)
+  # decodes through here, and @restore / @forceDelete must find them. Query.node and
+  # nodes hide them again (Types::QueryType).
   def self.object_from_id(global_id, query_ctx)
-    # For example, use Rails' GlobalID library (https://github.com/rails/globalid):
-    GlobalID.find(global_id)
+    gid = GlobalID.parse(global_id)
+    return unless gid
+
+    model = gid.model_class
+    (model.respond_to?(:with_discarded) ? model.with_discarded : model).find_by(id: gid.model_id)
+  rescue NameError
+    nil
   end
 end

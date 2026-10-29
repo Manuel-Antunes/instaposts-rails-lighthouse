@@ -14,11 +14,16 @@ Rails.application.routes.draw do
   delete "/logout", to: "sessions#destroy"
   get "/signup", to: "registrations#new"
   post "/signup", to: "registrations#create"
+  get "/confirmations/:token", to: "confirmations#show", as: :confirmation
+  post "/confirmation", to: "confirmations#create", as: :resend_confirmation
+  resources :passwords, param: :token, only: %i[new create edit update]
   match "/auth/:provider/callback", to: "omniauth_callbacks#create", via: %i[get post]
   get "/auth/failure", to: "omniauth_callbacks#failure"
 
   namespace :admin do
     resources :users, only: :index
+    # The trash: posts deleted by their authors, to restore or delete for good.
+    resources :posts, only: :index
   end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

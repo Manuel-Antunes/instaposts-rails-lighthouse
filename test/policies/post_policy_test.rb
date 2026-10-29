@@ -22,4 +22,28 @@ class PostPolicyTest < ActiveSupport::TestCase
     assert PostPolicy.new(users(:reader), posts(:one)).like?
     assert_not PostPolicy.new(nil, posts(:one)).like?
   end
+
+  test "writing waits for a confirmed email" do
+    unconfirmed = User.create!(name: "New", email: "new@example.com", role: :author)
+    assert_not PostPolicy.new(unconfirmed, Post).create?
+    assert_not PostPolicy.new(unconfirmed, posts(:one)).like?
+    assert_not CommentPolicy.new(unconfirmed, Comment).create?
+  end
+
+  test "its author or an admin trashes a post; only admins see, restore or purge the trash" do
+    assert PostPolicy.new(users(:author), posts(:one)).destroy?
+    assert PostPolicy.new(users(:admin), posts(:one)).destroy?
+    assert_not PostPolicy.new(users(:reader), posts(:one)).destroy?
+
+    %i[trash? restore? force_delete?].each do |ability|
+      assert PostPolicy.new(users(:admin), Post).public_send(ability)
+      assert_not PostPolicy.new(users(:author), Post).public_send(ability)
+    end
+  end
+
+  test "listing trashed posts is for admins" do
+    assert PostPolicy.new(nil, Post).index?(trashed: "WITHOUT")
+    assert_not PostPolicy.new(users(:author), Post).index?(trashed: "ONLY")
+    assert PostPolicy.new(users(:admin), Post).index?(trashed: "WITH")
+  end
 end

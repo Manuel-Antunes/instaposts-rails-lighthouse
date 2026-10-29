@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_30_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_30_130100) do
   create_table "accounts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "provider", null: false
@@ -45,13 +45,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_120100) do
   create_table "posts", force: :cascade do |t|
     t.string "name"
     t.text "content"
-    t.boolean "active"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "author_id"
     t.integer "likes_count", default: 0, null: false
     t.integer "comments_count", default: 0, null: false
+    t.datetime "discarded_at"
     t.index ["author_id"], name: "index_posts_on_author_id"
+    t.index ["discarded_at"], name: "index_posts_on_discarded_at"
   end
 
   create_table "users", force: :cascade do |t|
@@ -62,6 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_120100) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "password_digest"
+    t.datetime "confirmed_at"
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 

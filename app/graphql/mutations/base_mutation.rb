@@ -10,9 +10,12 @@ module Mutations
     private
 
     # The record a global ID names; `only:` keeps an ID of another model from loading it.
+    # GlobalID's locator skips default scopes: a trashed (discarded) record is not found either.
     def locate(id, only:)
       gid = GlobalID.parse(id)
-      (gid && GlobalID::Locator.locate(gid, only: only)) || raise(GraphQL::ExecutionError, "#{only.model_name.human} not found.")
+      record = gid && GlobalID::Locator.locate(gid, only: only)
+      record = nil if record.respond_to?(:discarded?) && record.discarded?
+      record || raise(GraphQL::ExecutionError, "#{only.model_name.human} not found.")
     end
 
     def authorize!(record, ability)

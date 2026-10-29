@@ -6,6 +6,8 @@ module Types
     # The routes are Rails': the frontend links to what this says, never builds the URL.
     def path = Rails.application.routes.url_helpers.post_path(object)
 
+    def viewer_can_delete = PostPolicy.new(context[:current_user], object).destroy?
+
     def viewer_has_liked
       user = context[:current_user]
       return false unless user

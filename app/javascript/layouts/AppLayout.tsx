@@ -24,9 +24,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               Blog Rails
             </Link>
             {auth.user?.role === 'admin' && (
-              <Link href="/admin/users" className="text-sm text-muted-foreground hover:text-foreground">
-                Admin
-              </Link>
+              <>
+                <Link href="/admin/users" className="text-sm text-muted-foreground hover:text-foreground">
+                  Admin
+                </Link>
+                <Link href="/admin/posts" className="text-sm text-muted-foreground hover:text-foreground">
+                  Trash
+                </Link>
+              </>
             )}
           </div>
 
@@ -57,6 +62,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </nav>
       </header>
+
+      {auth.user && !auth.user.confirmed && (
+        <div className="border-b bg-amber-50 text-amber-900">
+          <p className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-2 px-4 py-2 text-sm">
+            Confirm your email to like and comment: we sent a link to {auth.user.email}.
+            <button type="button" onClick={() => router.post('/confirmation')} className="font-semibold underline">
+              Send it again
+            </button>
+          </p>
+        </div>
+      )}
 
       <main className="mx-auto max-w-4xl px-4 py-8">
         {flash.notice && (

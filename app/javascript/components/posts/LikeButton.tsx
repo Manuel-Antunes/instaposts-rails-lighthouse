@@ -37,18 +37,19 @@ const UNLIKE_POST = graphql(`
 /**
  * Like and unlike the post, optimistically: the heart and the count change at once, and
  * every view of the post with them (the Post is one object in Apollo's cache). Guests go
- * to the login page.
+ * to the login page; users who have not confirmed their email cannot like yet.
  */
 export function useLike(postRef: FragmentType<typeof LikeButton_PostFragment>) {
   const post = getFragmentData(LikeButton_PostFragment, postRef)
-  const signedIn = !!usePage().props.auth.user
+  const user = usePage().props.auth.user
   const [like] = useMutation(LIKE_POST)
   const [unlike] = useMutation(UNLIKE_POST)
 
   const set = useCallback(
     (liked: boolean) => {
-      if (!signedIn) return router.visit('/login')
-      if (liked === post.viewerHasLiked) return
+      if (!user) return router.visit('/login')
+      // Unconfirmed: the server would refuse (PostPolicy#like?); the banner says why.
+      if (!user.confirmed || liked === post.viewerHasLiked) return
 
       const optimistic = {
         __typename: 'Post' as const,
@@ -62,7 +63,7 @@ export function useLike(postRef: FragmentType<typeof LikeButton_PostFragment>) {
         : unlike({ variables, optimisticResponse: { __typename: 'Mutation', unlikePost: optimistic } })
       ).catch(() => undefined)
     },
-    [signedIn, post.id, post.likesCount, post.viewerHasLiked, like, unlike],
+    [user, post.id, post.likesCount, post.viewerHasLiked, like, unlike],
   )
 
   return { liked: post.viewerHasLiked, set, toggle: () => set(!post.viewerHasLiked) }

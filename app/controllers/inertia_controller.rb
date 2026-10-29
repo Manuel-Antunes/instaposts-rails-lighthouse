@@ -16,6 +16,7 @@ class InertiaController < ApplicationController
         email: current_user.email,
         avatar_url: current_user.avatar_url,
         role: current_user.role,
+        confirmed: current_user.confirmed?,
         can_create_post: policy(Post).create?
       } }
   }

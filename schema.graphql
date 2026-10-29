@@ -1644,7 +1644,6 @@ input CreateCommentInput {
 }
 
 input CreatePostInput {
-  active: Boolean
   content: String!
   name: String!
 }
@@ -1706,9 +1705,24 @@ type Mutation {
   deleteComment(id: ID! @globalId(decode: ID) @whereKey): Comment @guard @canFind(ability: "destroy", find: "id") @delete
 
   """
+  Move a post to the trash (discard): its author or an admin. Mutations::DeletePost.
+  """
+  deletePost(id: ID!): Post @guard
+
+  """
+  Delete a trashed post for good, with its likes and comments. Admins only.
+  """
+  forceDeletePost(id: ID! @globalId(decode: ID) @whereKey): Post @guard @canModel(ability: "force_delete") @forceDelete
+
+  """
   Like a post as the signed-in user. Liking it again changes nothing. Mutations::LikePost.
   """
   likePost(id: ID!): Post @guard
+
+  """
+  Bring a post back from the trash. Admins only.
+  """
+  restorePost(id: ID! @globalId(decode: ID) @whereKey): Post @guard @canModel(ability: "restore") @restore
   sendWebhookEvent(input: SendWebhookEventInput!): SendWebhookEventResponse!
 
   """
@@ -1843,7 +1857,6 @@ enum PaginateType {
 }
 
 type Post implements Node @node {
-  active: Boolean
   author: User @belongsTo
 
   """
@@ -1868,6 +1881,11 @@ type Post implements Node @node {
   commentsCount: Int!
   content: String!
   createdAt: DateTime!
+
+  """
+  When it went to the trash; null for a live post.
+  """
+  deletedAt: DateTime @rename(attribute: "discarded_at")
   id: ID! @globalId
 
   """
@@ -1881,6 +1899,11 @@ type Post implements Node @node {
   """
   path: String!
   updatedAt: DateTime!
+
+  """
+  Whether the signed-in user may move it to the trash: PostPolicy#destroy?.
+  """
+  viewerCanDelete: Boolean!
 
   """
   Whether the signed-in user likes the post; false for guests. Types::PostType#viewer_has_liked.
@@ -1973,6 +1996,10 @@ type Query {
   A post by its global id. Authorized by PostPolicy#show?.
   """
   post(id: ID! @globalId(decode: ID) @eq): Post @find @canResolved(ability: "show")
+
+  """
+  Live posts. trashed: ONLY or WITH lists the trash too: admins only (PostPolicy#index?).
+  """
   posts(
     """
     A cursor after which elements are returned.
@@ -1988,7 +2015,12 @@ type Query {
     Order by clause for Query.posts.orderBy.
     """
     orderBy: [QueryPostsOrderByOrderByClause!] @orderBy(columns: ["created_at", "name", "id"])
-  ): PostConnection! @paginate(type: CONNECTION, scopes: ["active"]) @canModel(ability: "index")
+
+    """
+    Specify if you want to include or exclude trashed results from a query.
+    """
+    trashed: Trashed @trashed
+  ): PostConnection! @paginate(type: CONNECTION) @canModel(ability: "index", injectArgs: true)
 
   """
   Every user. Admins only.
@@ -2056,13 +2088,32 @@ enum SortOrder {
   DESC
 }
 
+"""
+Specify if you want to include or exclude trashed results from a query.
+"""
+enum Trashed {
+  """
+  Only return trashed results.
+  """
+  ONLY
+
+  """
+  Return both trashed and non-trashed results.
+  """
+  WITH
+
+  """
+  Only return non-trashed results.
+  """
+  WITHOUT
+}
+
 input UpdateCommentInput {
   body: String!
   id: ID! @globalId(decode: ID)
 }
 
 input UpdatePostInput {
-  active: Boolean
   content: String
   id: ID!
   name: String

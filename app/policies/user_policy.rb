@@ -15,8 +15,4 @@ class UserPolicy < ApplicationPolicy
   class Scope < ApplicationPolicy::Scope
     def resolve = scope.all
   end
-
-  private
-
-  def admin? = user.present? && user.admin?
 end

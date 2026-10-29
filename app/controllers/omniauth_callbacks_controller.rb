@@ -16,7 +16,7 @@ class OmniauthCallbacksController < InertiaController
       redirect_to root_path, notice: "Signed in as #{user.name}."
     end
   rescue User::PasswordAccountExists
-    redirect_to login_path, alert: "An account with this email already exists. Sign in with your password."
+    redirect_to login_path, alert: "An account with this email already exists. Sign in with your password and confirm the email to link it."
   rescue ActiveRecord::RecordInvalid => error
     redirect_to login_path, alert: error.message
   end
