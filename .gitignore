@@ -33,3 +33,7 @@
 # Ignore key files for decrypting credentials and more.
 /config/*.key
 
+
+# Lighthouse IDE helper output (bin/rails lighthouse:ide_helper)
+/schema-directives.graphql
+/programmatic-types.graphql

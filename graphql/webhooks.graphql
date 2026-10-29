@@ -1,0 +1,16 @@
+scalar JSON
+
+input SendWebhookEventInput {
+  eventName: String!
+  payload: JSON!
+  clientMutationId: String
+}
+
+type SendWebhookEventResponse {
+  success: Boolean!
+  message: String
+}
+
+extend type Mutation {
+  sendWebhookEvent(input: SendWebhookEventInput!): SendWebhookEventResponse!
+}

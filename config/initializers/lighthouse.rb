@@ -1,0 +1,101 @@
+# frozen_string_literal: true
+
+# Lighthouse configuration. Every option is optional; the defaults are shown.
+# Reference: https://github.com/Vaz-Innovation/lighthouse-graphql/blob/main/docs/configuration.md
+Lighthouse.configure do |config|
+  # The schema's entrypoint. It imports the other .graphql files
+  # (#import user.graphql, #import blog/*.graphql), which add to a type
+  # defined elsewhere with `extend type`.
+  # config.schema_path = Rails.root.join('graphql/schema.graphql').to_s
+
+  # Where classes named by the schema are looked up, by kind. A Query or Mutation
+  # field without a resolving directive resolves by convention: Query.latestPosts
+  # to Resolvers::LatestPosts (a Resolvers::BaseResolver), Mutation.publishPost
+  # to Mutations::PublishPost (a Mutations::BaseMutation). @builder classes
+  # come from :builders and @validator contracts from :validators. A Subscription
+  # field resolves to Subscriptions::PostUpdated (a Subscriptions::BaseSubscription),
+  # @event(dispatch:) classes come from :events, and the graphql-ruby analyzers
+  # @complexity(resolver:) names from :analyzers. Post.readingTime, with no
+  # resolving directive, resolves with Types::PostType#reading_time (a
+  # Types::BaseObject including Lighthouse::GraphQL::Type), from :types. Generate a
+  # subscription, builder or validator with `rails g lighthouse:subscription|builder|validator Name`,
+  # and a type class with graphql-ruby's `rails g graphql:object|union|interface|scalar Name`.
+  # config.namespaces = {
+  #   queries: ['Resolvers'], mutations: ['Mutations'], subscriptions: ['Subscriptions'],
+  #   builders: ['Builders'], validators: ['Validators'], events: ['Events'], analyzers: ['Analyzers'],
+  #   types: ['Types']
+  # }
+
+  # Namespaces tried, in order, for models (@all(model: "User")) and for
+  # @field(resolver:) on types other than Query and Mutation, after :queries
+  # (@field(resolver: "Posts::TagsCount") is Resolvers::Posts::TagsCount).
+  # Fully-qualified names (containing `::`) are used as-is.
+  # config.resolver_namespaces = ['App::Graphql']
+
+  # Run @create/@update/@createMany/@updateMany in a database transaction.
+  # config.transactional_mutations = true
+
+  # Treat "" as null on every field's inputs, as if each carried
+  # @convertEmptyStringsToNull. Read when the schema is built.
+  # config.convert_empty_strings_to_null = false
+
+  # What "trashed" means for @softDeletes, @trashed, @restore and @forceDelete.
+  # By default each model is inspected: paranoia, then discard, then a deleted_at column.
+  # config.soft_deletes = Lighthouse::Support::SoftDeletes::Column.new(:archived_at)
+
+  # Run @broadcast's subscription triggers in an ActiveJob (a directive's
+  # shouldQueue: overrides it), and the queue they go to (nil: the default one).
+  # config.queue_broadcasts = false
+  # config.broadcast_queue = nil
+
+  # --- For large schemas and high traffic (all off by default) ---------------
+  # Cache the built schema document in tmp/cache, keyed by the SDL and
+  # everything that shapes it; warm it at deploy with `bin/rails lighthouse:cache`.
+  # config.schema_cache = Rails.env.production?
+
+  # Reload the app (and so the schema) when a .graphql file changes.
+  # config.watch_sdl = Rails.env.development?
+
+  # Rewrite schema-directives.graphql and programmatic-types.graphql, which your
+  # IDE reads through graphql.config.yml, on boot and on every reload. nil: in
+  # development, when the app has a graphql.config.yml.
+  # config.ide_helper = nil
+
+  # Automatic Persisted Queries (Apollo's protocol). Add a GET route too, so
+  # hashed queries can be cached by CDNs: get "/graphql", to: "graphql#execute"
+  # config.persisted_queries = true
+  # config.persisted_queries_ttl = 1.week.to_i
+  # A manifest of trusted operations from your client build, served by hash;
+  # with persisted_queries_only, nothing else may run.
+  # config.persisted_queries_manifest = Rails.root.join('persisted-queries.json')
+  # config.persisted_queries_only = Rails.env.production?
+
+  # Called when a directive or resolver swallows an error. The default raises in
+  # test and logs otherwise.
+  # config.on_error = ->(error, _context) { Rails.error.report(error) }
+
+  # Authorization seams used by @guard and the @can* directives (Pundit by default).
+  # config.authenticated_user = ->(ctx) { ctx[:current_user] }
+  # config.policy_user = ->(ctx) { ctx[:pundit_user] || ctx[:current_user] }
+  # config.authorizer = ->(user, record, ability, args = []) { Pundit.policy!(user, record).public_send("#{ability}?", *args) }
+
+  # Feature flags read by @feature (Flipper by default): the actor a flag is
+  # checked for, and the check itself.
+  # config.feature_actor = ->(ctx) { ctx[:current_user] }
+  # config.feature_checker = ->(name, actor, _ctx) { Flipper.enabled?(name.to_sym, actor) }
+end
+
+# Register app-defined directives and federation reference resolvers inside
+# to_prepare, so they reference reloadable constants and run before the schema
+# is built. See docs/custom-directives.md and docs/federation.md.
+# Rails.application.config.to_prepare do
+#   Lighthouse::DirectiveRegistry.register(Directives::Upcase)
+#   Lighthouse::ReferenceResolver.register('User') { |ref, _ctx| User.find_by(id: ref['id']) }
+# end
+
+# Listen to Lighthouse's request, schema-build and execution events. A listener
+# may return a value where the event says so, as BuildExtensionsResponse does.
+# See docs/events.md.
+# Lighthouse::Events.listen(Lighthouse::Events::EndExecution) do |event|
+#   Rails.logger.info("[GraphQL] #{event.result.to_h['errors']&.size.to_i} errors")
+# end

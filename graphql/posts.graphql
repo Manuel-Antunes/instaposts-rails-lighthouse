@@ -1,0 +1,24 @@
+
+type Post implements Node @node {
+  id: ID! @globalId
+  name: String!
+  content: String!
+  active: Boolean
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+
+extend type Query {
+  posts: [Post!]! @paginate(type: CONNECTION)
+}
+
+input CreatePostInput {
+  name: String!
+  content: String!
+  active: Boolean
+}
+
+extend type Mutation {
+  createPost(input: CreatePostInput! @spread): Post @create
+}

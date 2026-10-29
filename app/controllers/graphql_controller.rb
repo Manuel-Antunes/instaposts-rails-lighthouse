@@ -1,0 +1,19 @@
+# frozen_string_literal: true
+
+# Serves the schema: StartRequest/EndRequest events, persisted queries, batching,
+# variables, Cache-Control. See docs/getting-started.md.
+class GraphqlController < ApplicationController
+  # If this endpoint is called from outside this domain, null the session
+  # instead of failing CSRF verification:
+  # protect_from_forgery with: :null_session
+
+  include Lighthouse::GraphQL::Controller
+
+  lighthouse_schema BlogRailsSchema
+
+  private
+
+  # Read by @guard and the @can* directives — see config/initializers/lighthouse.rb.
+  # Defaults to { current_user: current_user } when the controller has a current_user.
+  # def graphql_context = { current_user: current_user }
+end
