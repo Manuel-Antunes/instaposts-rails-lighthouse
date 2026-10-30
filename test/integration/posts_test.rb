@@ -44,6 +44,16 @@ class PostsTest < ActionDispatch::IntegrationTest
     assert_equal 5.times.map { "Tied #{_1}" }, names.first(5)
   end
 
+  test "a post is found by a post's id only" do
+    post = posts(:one)
+    query = "query($id: ID!) { post(id: $id) { name } }"
+
+    assert_equal "First", gql(query, variables: { id: post.to_gid_param }).dig("data", "post", "name")
+    result = gql(query, variables: { id: global_id("User", post.id) })
+    assert_nil result.dig("data", "post")
+    assert_match(/is not a valid global id for Post\./, result.dig("errors", 0, "message"))
+  end
+
   test "a missing post is a 404" do
     get "/posts/0"
     assert_response :not_found

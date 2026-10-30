@@ -76,6 +76,18 @@ class SoftDeletesTest < ActionDispatch::IntegrationTest
     assert_not Post.with_discarded.exists?(post.id)
   end
 
+  test "another type's id with a trashed post's number restores and deletes nothing" do
+    post = posts(:one)
+    post.discard!
+    comment_id = global_id("Comment", post.id)
+
+    [ RESTORE, FORCE_DELETE ].each do |mutation|
+      result = gql(mutation, as: users(:admin), variables: { id: comment_id })
+      assert_equal "\"#{comment_id}\" is not a valid global id for Post.", result.dig("errors", 0, "message")
+    end
+    assert post.reload.discarded?
+  end
+
   test "the trash page preloads the trashed posts, for admins" do
     posts(:two).discard!
 

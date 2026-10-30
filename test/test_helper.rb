@@ -47,6 +47,10 @@ module InertiaTestHelper
 end
 
 module GraphqlTestHelper
+  # The global id a record of `model_name` with this id would have: another type's id with
+  # the same number as a real record, which must not find it.
+  def global_id(model_name, id) = GlobalID.new(URI::GID.build(app: GlobalID.app, model_name: model_name, model_id: id.to_s)).to_param
+
   # POST /graphql as the API clients do: a bearer JWT for `as`, none for a guest.
   def gql(query, as: nil, variables: {})
     headers = as ? { "Authorization" => "Bearer #{AuthToken.encode(as)}" } : {}

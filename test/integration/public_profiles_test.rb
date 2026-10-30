@@ -131,6 +131,7 @@ class PublicProfilesTest < ActionDispatch::IntegrationTest
     assert_equal "alice", gql(query, variables: { by: { username: "alice" } }).dig("data", "user", "username")
     assert_equal "alice", gql(query, variables: { by: { id: alice.to_gid_param } }).dig("data", "user", "username")
     assert_nil gql(query, variables: { by: { username: "nobody" } }).dig("data", "user")
+    assert_match(/is not a valid global id for User\./, gql(query, variables: { by: { id: global_id("Post", alice.id) } }).dig("errors", 0, "message"))
 
     [ { id: alice.to_gid_param, username: "alice" }, {}, { username: nil } ].each do |by|
       result = gql(query, variables: { by: by })
