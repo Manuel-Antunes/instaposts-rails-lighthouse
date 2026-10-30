@@ -97,12 +97,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    # services:
-    #  redis:
-    #    image: valkey/valkey:8
-    #    ports:
-    #      - 6379:6379
-    #    options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    # The database, as compose.yaml runs it: config/database.yml's defaults reach it.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: instaposts
+          POSTGRES_PASSWORD: instaposts-dev-secret
+        ports:
+          - 5432:5432
+        options: --health-cmd "pg_isready -U instaposts" --health-interval 2s --health-timeout 5s --health-retries 10
+
     steps:
       - name: Install packages
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libvips

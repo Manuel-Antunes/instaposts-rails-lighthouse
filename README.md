@@ -1,12 +1,12 @@
 # Instaposts: Rails + lighthouse-graphql
 
-An Instagram-like app built as a real-world example of [lighthouse-graphql](https://github.com/Vaz-Innovation/lighthouse-graphql), the SDL-first GraphQL server for Rails modeled on PHP's Lighthouse. Users post pictures and videos, like posts, comment on them, follow each other's profiles, and admins manage users and a trash of deleted posts.
+An Instagram-like app built as a real-world example of [lighthouse-graphql](https://github.com/Vaz-Innovation/lighthouse-graphql), the SDL-first GraphQL server for Rails modeled on PHP's Lighthouse. Users post pictures and videos, like posts, comment on them, follow each other's profiles, search people, posts and #hashtags, and admins manage users and a trash of deleted posts.
 
 The frontend is React with Inertia.js. Every page is rendered on the server with its data: Rails runs the page's GraphQL operation through Lighthouse before rendering, so the first load needs no client request, and Apollo Client takes over from there.
 
 | | |
 | --- | --- |
-| Backend | Rails 8.1, lighthouse-graphql, Devise, Pundit, Discard, Active Storage, Solid Queue, SQLite |
+| Backend | Rails 8.1, lighthouse-graphql, Devise, Pundit, Discard, Active Storage, Solid Queue, PostgreSQL, pg_search |
 | Frontend | React 19, Inertia.js 3 (with SSR), Apollo Client 4, Vite 8, Tailwind CSS 4, shadcn/ui |
 | Tooling | GraphQL Code Generator, TypeScript, React Hook Form + zod, TanStack Virtual |
 
@@ -21,6 +21,17 @@ The frontend is React with Inertia.js. Every page is rendered on the server with
 - Files: the `Upload` scalar with `@upload` to S3, and `@attachment` for their URLs.
 - Relay global ids with `@globalId` and `@node`.
 - One lookup of several with `@oneOf`: `user(by: UserBy!)` finds a user by `id` or by `username`, and a query that gives both, neither or `null` is refused before anything resolves.
+- Full-text search with `@search`, on PostgreSQL through pg_search (below).
+
+**Search, as Instagram's.** `graphql/search.graphql` puts Lighthouse's `@search` on three kinds of field, and pg_search does the rest in PostgreSQL: a word being typed matches its start (`ra` finds `#rails`), and accents are ignored (`joao` finds João).
+
+- Every search reads a GIN index: each table keeps `search_vector`, a stored generated `tsvector`, so nothing is computed per row (on 100,000 posts, a search takes a few milliseconds instead of ~400).
+- Captions are searched in English and in Portuguese: their vector holds each word as written, as English stems it and as Portuguese stems it, and each word of the query is read all three ways (`dictionaries:`, in `config/initializers/pg_search.rb`). `runs` finds "running", `corrida` finds "correndo". Names, @usernames and #hashtags are matched as written.
+
+- The search box in the header asks `search(term:)`, a field of the `SearchResult` union (`User | Post | Hashtag`): one ranked list of people, posts and hashtags with an exact total, from pg_search's multisearch documents. A short match, a @username or a #hashtag, ranks before a long caption that repeats the word (`config/initializers/pg_search.rb`).
+- The search page (`/explore/search?q=`) asks each kind alone: `people(term:)`, `hashtags(term:)` and `posts(search:)`, each a `pg_search_scope` that the field's other directives compose on: `posts` keeps its `@orderBy` and `@softDeletes`, the best match first and the client's order among equals, and `hashtags` breaks the rank's ties with `scopes: ["popular"]`.
+- What a search may answer is the model's: a trashed post is never found, nor a hashtag no live post has (`Hashtag.search_results`), in the union too.
+- A post's #hashtags are those of its caption and of its author's own comments on it (`Post#sync_hashtags`). Captions and comments show them, and @mentions, as links (`lib/rich-text.ts`, the same rule as `Hashtag::PATTERN`), and each tag has its page at `/explore/tags/:name`, a grid of its posts.
 
 **Pages preload their query on the server.** A page declares its operation next to the component (`export const pageQuery = graphql(...)`). The controller calls `render_preloaded`, which runs that operation through Lighthouse as the signed-in user, with the same directives and policies as `/graphql`, and sends the result with the page. The browser writes it to Apollo's cache before the first render, so the server-rendered HTML and the hydrated page match.
 
@@ -57,11 +68,13 @@ In the browser
 You need Ruby 3.4.4, Node 24 and Docker.
 
 ```sh
-docker compose up -d   # Mailpit (email) and MinIO (S3 storage)
+docker compose up -d   # PostgreSQL, Mailpit (email) and MinIO (S3 storage)
 bin/setup              # gems, npm packages, database and seeds; then starts bin/dev
 ```
 
-`bin/dev` runs Rails on http://localhost:3000 and the Vite dev server, which also renders the pages on the server in development. The seeds create an admin, `john@acme.inc` (the password is in `db/seeds.rb`), five authors and forty posts.
+`bin/dev` runs Rails on http://localhost:3000 and the Vite dev server, which also renders the pages on the server in development. The seeds create an admin, `john@acme.inc` (the password is in `db/seeds.rb`), six authors with the same password, and forty posts with #hashtags to search.
+
+Data that was there before search (or loaded without callbacks) gets its hashtags and search documents with `bin/rails search:rebuild`.
 
 | | |
 | --- | --- |
@@ -85,12 +98,13 @@ bin/ci             # everything CI runs, plus RuboCop, Brakeman and bundler-audi
 
 ## Production
 
-The `Dockerfile` builds one image with Puma, Thruster, the Inertia SSR server (Node) and Solid Queue. On boot it creates or migrates the SQLite databases in `/rails/storage`.
+The `Dockerfile` builds one image with Puma, Thruster, the Inertia SSR server (Node) and Solid Queue. On boot it creates or migrates its PostgreSQL databases: the app's, and Solid Cache's, Solid Queue's and Solid Cable's (`instaposts_production`, `_cache`, `_queue`, `_cable`), on one server whose user may create databases. `config/deploy.yml` runs that server as a Kamal accessory.
 
 ```sh
 docker build -t instaposts .
 docker run -d -p 80:80 -v instaposts_storage:/rails/storage \
   -e SECRET_KEY_BASE="$(bin/rails secret)" \
+  -e DB_HOST=... -e DB_PASSWORD=... \
   -e APP_URL=https://instaposts.example.com \
   -e SOLID_QUEUE_IN_PUMA=true \
   -e S3_ENDPOINT=... -e S3_ACCESS_KEY_ID=... -e S3_SECRET_ACCESS_KEY=... -e S3_BUCKET=... \
@@ -101,6 +115,7 @@ docker run -d -p 80:80 -v instaposts_storage:/rails/storage \
 | Variable | |
 | --- | --- |
 | `SECRET_KEY_BASE` | Signs sessions and the API's JWTs. `config/credentials.yml.enc` is encrypted with a key that is not in the repository: use this variable, or delete that file and run `bin/rails credentials:edit` to make your own. |
+| `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD` | The PostgreSQL server (port 5432 and user `instaposts` by default). |
 | `APP_URL` | The public address: links in emails, OmniAuth callbacks, share links. |
 | `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION`, `S3_BUCKET` | The public bucket for pictures and videos. Its URLs go to browsers as they are, so the endpoint must be reachable from them. |
 | `SMTP_ADDRESS`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `MAIL_FROM` | Email. Without `SMTP_USERNAME` the server is used without login. |
@@ -115,7 +130,7 @@ graphql/                  the schema (SDL), with Lighthouse's directives
 app/graphql/              type classes, resolvers and mutations for what the directives do not cover
 app/graphql/page_queries/ server-side preloading of each page's operation
 app/policies/             Pundit policies, used by the controllers and by @can*
-app/javascript/pages/     Inertia pages, each with its pageQuery
+app/javascript/pages/     Inertia pages, each with its pageQuery (search/ and hashtags/ for search)
 app/javascript/components/  components, each with its fragment
 app/javascript/graphql/   usePageQuery, useConnection, generated types
 vite/inertia-graphql/     the Vite plugin: codegen, page operations, type policies

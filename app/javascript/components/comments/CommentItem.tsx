@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import CommentEditForm from '@/components/comments/CommentEditForm'
 import ConfirmAction from '@/components/ConfirmAction'
+import RichText from '@/components/RichText'
 import TimeAgo from '@/components/TimeAgo'
 import AuthorAvatar from '@/components/users/AuthorAvatar'
 import AuthorName from '@/components/users/AuthorName'
@@ -38,7 +39,7 @@ export default function CommentItem(props: { comment: FragmentType<typeof Commen
           <CommentEditForm id={comment.id} body={comment.body} onDone={() => setEditing(false)} />
         ) : (
           <p className="wrap-break-word whitespace-pre-wrap">
-            <AuthorName user={comment.author} /> {comment.body}
+            <AuthorName user={comment.author} /> <RichText text={comment.body} />
           </p>
         )}
 

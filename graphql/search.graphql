@@ -1,0 +1,36 @@
+"""
+A #hashtag, as Instagram's: lowercase, without the #. A post is tagged with the ones of its
+caption and of its author's own comments on it.
+"""
+type Hashtag implements Node @node {
+  id: ID! @globalId
+  "Lowercase, without the #: its page is /explore/tags/:name."
+  name: String!
+  "How many live posts it tags."
+  postsCount: Int! @count(relation: "posts")
+  "The live posts it tags: its page's grid. Newest first with orderBy created_at."
+  posts(orderBy: _ @orderBy(columns: ["created_at"])): [Post!]! @hasMany(type: CONNECTION)
+}
+
+"What the search box finds: people, posts and hashtags, in one list."
+union SearchResult = User | Post | Hashtag
+
+extend type Query {
+  """
+  Instagram's search box: people, hashtags and posts together, best matches first, in one
+  ranked list with an exact total. Lighthouse's @search over a union, through pg_search's
+  multisearch: each model's documents (pg_search_documents), counted only when the model
+  answers its record (a live post, a hashtag of a live post).
+  """
+  search(term: String! @search): [SearchResult!]! @paginate(defaultCount: 10, maxCount: 50)
+
+  "People, by @username first, then by name: best matches first."
+  people(term: String! @search): [User!]! @paginate(type: CONNECTION, defaultCount: 10, maxCount: 50)
+
+  "Hashtags of live posts: best matches first, then the most used (Hashtag.popular)."
+  hashtags(term: String! @search): [Hashtag!]!
+    @paginate(type: CONNECTION, defaultCount: 10, maxCount: 50, scopes: ["popular"])
+
+  "A hashtag by its name, lowercase and without the #: what its page shows."
+  hashtag(name: String! @eq): Hashtag @find
+}

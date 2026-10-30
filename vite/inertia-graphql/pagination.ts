@@ -134,7 +134,8 @@ export function typePoliciesModule(schema: GraphQLSchema) {
 
   const imports = ["import type { TypePolicies } from '@apollo/client'"]
   if (relay) imports.push("import { relayStylePagination } from '@apollo/client/utilities'")
-  if (pages) imports.push('', "import { pagePagination } from '../page-pagination'")
+  // With its extension: test/javascript loads this module under Node, which resolves no other.
+  if (pages) imports.push('', "import { pagePagination } from '../page-pagination.ts'")
 
   return [
     HEADER,

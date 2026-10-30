@@ -54,7 +54,7 @@ test('an operation paginates the fields whose page argument is a variable, throu
 test('generates a field policy for each paginated field', () => {
   const module = typePoliciesModule(schema)
   assert.match(module, /import \{ relayStylePagination \} from '@apollo\/client\/utilities'/)
-  assert.match(module, /import \{ pagePagination \} from '..\/page-pagination'/)
+  assert.match(module, /import \{ pagePagination \} from '..\/page-pagination\.ts'/)
   assert.match(module, /posts: relayStylePagination\(\['first', 'orderBy'\]\)/)
   assert.match(module, /comments: pagePagination\(\['first'\]\)/)
 })

@@ -29,6 +29,11 @@ Rails.application.routes.draw do
   # keeps it apart from every other route, so no username has to be reserved.
   get "/@:username", to: "users#show", as: :user, format: false, constraints: { username: /[A-Za-z0-9_.]{1,30}/ }
 
+  # Search: the page of what the search box finds (?q=), and a #hashtag's posts, at
+  # Instagram's addresses. A tag is any letters, so the name takes anything but a slash.
+  get "/explore/search", to: "search#index", as: :search
+  get "/explore/tags/:name", to: "hashtags#show", as: :hashtag, format: false, constraints: { name: %r{[^/]+} }
+
   namespace :admin do
     resources :users, only: :index
     # The trash: posts deleted by their authors, to restore or delete for good.

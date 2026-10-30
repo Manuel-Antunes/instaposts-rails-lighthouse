@@ -27,8 +27,12 @@ extend type Query {
   "A post by its global id. Authorized by PostPolicy#show?."
   post(id: ID! @globalId(decode: ID) @eq): Post @find @canResolved(ability: "show")
 
-  "Live posts. The trashed argument lists the trash too: admins only (PostPolicy#view_trashed?)."
-  posts(orderBy: _ @orderBy(columns: ["created_at", "name"])): [Post!]!
+  """
+  Live posts. The trashed argument lists the trash too: admins only (PostPolicy#view_trashed?).
+  With search, the posts whose title or caption match it (pg_search: Post.search), best
+  matches first; orderBy breaks the ties.
+  """
+  posts(search: String @search, orderBy: _ @orderBy(columns: ["created_at", "name"])): [Post!]!
     @paginate(type: CONNECTION)
     @softDeletes(ability: "view_trashed")
 }
