@@ -9,7 +9,7 @@ class GraphqlController < ApplicationController
 
   include Lighthouse::GraphQL::Controller
 
-  lighthouse_schema BlogRailsSchema
+  lighthouse_schema InstaPostsSchema
 
   private
 

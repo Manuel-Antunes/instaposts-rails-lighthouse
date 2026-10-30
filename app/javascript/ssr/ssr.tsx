@@ -9,7 +9,7 @@ import { createApolloClient } from '@/lib/apollo'
 createInertiaApp({
   pages: '../pages',
 
-  title: (title) => title || 'Blog Rails',
+  title: (title) => title || 'InstaPosts',
 
   // withApp runs once per render: each request gets a client, and a cache, of its own,
   // so one user's data never reaches another's page.

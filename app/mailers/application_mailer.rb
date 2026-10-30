@@ -1,4 +1,4 @@
 class ApplicationMailer < ActionMailer::Base
-  default from: ENV.fetch("MAIL_FROM", "Blog Rails <no-reply@blog-rails.test>")
+  default from: ENV.fetch("MAIL_FROM", "InstaPosts <no-reply@instaposts.test>")
   layout "mailer"
 end

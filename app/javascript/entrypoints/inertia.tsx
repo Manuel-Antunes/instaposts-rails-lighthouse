@@ -11,7 +11,7 @@ void createInertiaApp({
 
   serverHead: true,
 
-  title: (title) => title || "Blog Rails",
+  title: (title) => title || "InstaPosts",
 
   strictMode: true,
 

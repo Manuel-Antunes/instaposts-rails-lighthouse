@@ -4,7 +4,7 @@
 # install wrote (base_types): the SDL's root types extend the code-first ones, whose
 # `field`s stay the schema's, and every type, resolver and mutation class inherits from
 # its kind's base. The rest of the class is graphql-ruby's.
-class BlogRailsSchema < Lighthouse::GraphQL::RbLightHouse.get_schema(
+class InstaPostsSchema < Lighthouse::GraphQL::RbLightHouse.get_schema(
   options: {
     base_types: {
       query_type: Types::QueryType,

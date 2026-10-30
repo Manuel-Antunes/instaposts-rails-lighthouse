@@ -27,7 +27,7 @@ module PageQueries
       )
       # What a controller's lighthouse_execute does, as `user`.
       execute = lambda do |query, variables:, operation_name:|
-        BlogRailsSchema.execute(query, variables: variables, operation_name: operation_name, context: { current_user: user }).to_h
+        InstaPostsSchema.execute(query, variables: variables, operation_name: operation_name, context: { current_user: user }).to_h
       end
       Preloader.new(execute: execute, manifest: manifest)
     end

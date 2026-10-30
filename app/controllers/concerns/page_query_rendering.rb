@@ -16,7 +16,7 @@ module PageQueryRendering
   include Lighthouse::GraphQL::Operations
 
   included do
-    lighthouse_schema "BlogRailsSchema"
+    lighthouse_schema "InstaPostsSchema"
   end
 
   private

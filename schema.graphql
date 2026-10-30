@@ -325,7 +325,7 @@ type Query {
   me: User
 
   """
-  Fetches an object given its ID. Resolved by Types::QueryType#node, with BlogRailsSchema.object_from_id.
+  Fetches an object given its ID. Resolved by Types::QueryType#node, with InstaPostsSchema.object_from_id.
   """
   node(
     """

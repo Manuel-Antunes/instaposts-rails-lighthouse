@@ -11,7 +11,7 @@
 
 "Indicates what fields are available at the top level of a query operation."
 type Query {
-  "Fetches an object given its ID. Resolved by Types::QueryType#node, with BlogRailsSchema.object_from_id."
+  "Fetches an object given its ID. Resolved by Types::QueryType#node, with InstaPostsSchema.object_from_id."
   node("ID of the object." id: ID!): Node
 
   "Fetches a list of objects given a list of IDs. Resolved by Types::QueryType#nodes."
