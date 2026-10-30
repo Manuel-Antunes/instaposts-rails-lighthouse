@@ -43,7 +43,7 @@ Codegen lê. Nenhum dos dois lados lê arquivos gerados dentro do código-fonte 
 ```text
                   BUILD (vite build / vite dev)                           REQUEST (Rails)
 ┌───────────────────────────────────────────────────────────┐   ┌──────────────────────────────────────┐
-│ schema.graphql  ◄── bin/rails graphql:schema:dump         │   │ PostsController#show                 │
+│ schema.graphql  ◄── Lighthouse config.schema_output       │   │ PostsController#show                 │
 │      │              (e a cada reload, em dev)             │   │   render_preloaded variables: {...}  │
 │      ▼                                                    │   │            │                         │
 │ GraphQL Codegen (client preset + fragment-matcher)        │   │            ▼                         │
@@ -699,11 +699,11 @@ precisa de uma regra explícita.
 
 ## 9. Schema e Codegen
 
-- `bin/rails graphql:schema:dump` escreve `schema.graphql` (raiz) com `BlogRailsSchema.to_definition`, só
-  se mudou. Em dev, um `to_prepare` faz o mesmo a cada reload: `watch_sdl` recarrega quando um `.graphql`
-  muda, e o watcher do plugin reroda o Codegen. Imprimir o schema custa cerca de 50 ms.
-- CI: `bin/rails graphql:schema:dump` + `npm run codegen` + `npm run check` não podem deixar diff nem
-  erro de tipo.
+- `config.schema_output = "schema.graphql"` (Lighthouse ≥ 0.8) reescreve `schema.graphql` (raiz) em dev,
+  no boot e a cada reload, só se mudou: `watch_sdl` recarrega quando um `.graphql` muda, e o watcher do
+  plugin reroda o Codegen. Fora de dev: `bin/rails lighthouse:print_schema WRITE=1`.
+- CI: `bin/rails lighthouse:schema_output:verify` + `npm run codegen` + `npm run check` não podem deixar
+  diff nem erro de tipo.
 - `graphql.config.yml` (IDE) pode passar a apontar para `schema.graphql` e para os documentos em
   `app/javascript/**/*.tsx`, o que dá autocomplete nos `graphql()`.
 
@@ -737,7 +737,7 @@ Onde cada peça ficou:
 
 | Peça | Arquivo |
 | --- | --- |
-| Schema exportado | `schema.graphql` (`bin/rails graphql:schema:dump`; em dev, a cada reload) |
+| Schema exportado | `schema.graphql` (`config.schema_output`, em dev a cada reload; `lighthouse:schema_output:verify` no CI) |
 | Codegen | `codegen.ts` (client preset + `fragment-matcher`, sha256 em hex, `__typename`) |
 | Plugin Vite | `vite/inertia-graphql/`: `scan.ts` (AST), `metadata.ts` (página → operação), `pagination.ts` (providers do `@paginate`), `generate.ts`, `index.ts` (manifesto e `/__inertia_graphql`), `cli.ts` (`npm run codegen`) |
 | Gerados | `app/javascript/graphql/generated/`: tipos, `graphql()`, `getFragmentData`, `possible-types.ts`, `type-policies.ts`, `pagination.ts` |

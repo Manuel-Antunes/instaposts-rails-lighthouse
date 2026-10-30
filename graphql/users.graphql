@@ -6,12 +6,17 @@ enum UserRole {
 
 type User implements Node @node {
   id: ID! @globalId
+  "Their handle, unique and lowercase: their public page is /@username."
+  username: String!
   name: String!
   "Only visible to the user themselves and to admins; null for everyone else."
   email: String @canRoot(ability: "view_email", action: RETURN_VALUE)
-  avatarUrl: String
+  "The picture the user chose, else the provider's: Types::UserType#avatar_url."
+  avatarUrl: String @with(relation: "avatar_attachment.blob")
   role: UserRole!
-  posts: [Post!]! @hasMany(type: CONNECTION)
+  "Their live posts, trashed ones left out. Newest first with orderBy created_at."
+  posts(orderBy: _ @orderBy(columns: ["created_at"])): [Post!]! @hasMany(type: CONNECTION)
+  postsCount: Int! @count(relation: "posts")
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -20,6 +25,9 @@ extend type Query {
   "Every user. Admins only."
   users: [User!]! @paginate(type: CONNECTION) @guard @canModel(ability: "index")
 
+  "A user by their lowercase @username: as public as their page. Authorized by UserPolicy#show?."
+  user(username: String! @eq): User @find @canResolved(ability: "show")
+
   "The signed-in user, identified by the bearer JWT."
   me: User @guard
 }
@@ -27,4 +35,23 @@ extend type Query {
 extend type Mutation {
   "Change a user's role. Admins only, and never their own."
   updateUserRole(id: ID!, role: UserRole!): User @guard
+}
+
+input UpdateProfileInput {
+  name: String @trim
+  "A new handle: lowercase letters, numbers, underscores and periods. Their page moves with it."
+  username: String @trim
+  "A new picture, cropped in the browser. @upload stores it on the media bucket."
+  avatar: Upload @upload(disk: "media", path: "avatars", public: true)
+}
+
+extend type Mutation {
+  "Change the signed-in user's name or picture."
+  updateProfile(input: UpdateProfileInput! @spread): User!
+    @guard
+    @update
+    @inject(context: "current_user.id", name: "id")
+
+  "Remove the signed-in user's picture: back to the provider's, or the initials. Mutations::RemoveAvatar."
+  removeAvatar: User! @guard
 }

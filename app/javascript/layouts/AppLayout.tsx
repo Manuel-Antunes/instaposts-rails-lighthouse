@@ -1,19 +1,14 @@
-import { useApolloClient } from '@apollo/client/react'
-import { Link, router, usePage } from '@inertiajs/react'
+import { Link, usePage } from '@inertiajs/react'
 import type { ReactNode } from 'react'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import UserAvatar from '@/components/UserAvatar'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const {
-    props: { auth },
-    flash,
-  } = usePage()
-  const apolloClient = useApolloClient()
-
-  // Whatever Apollo cached belongs to the user who just left.
-  const signOut = () => router.delete('/logout', { onSuccess: () => void apolloClient.clearStore() })
+  const { flash } = usePage()
+  const { user, signOut, resendConfirmation } = useAuth()
 
   return (
     <div className="min-h-screen bg-muted/30 text-foreground">
@@ -23,7 +18,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Link href="/" className="text-lg font-semibold">
               Blog Rails
             </Link>
-            {auth.user?.role === 'admin' && (
+            {user?.role === 'admin' && (
               <>
                 <Link href="/admin/users" className="text-sm text-muted-foreground hover:text-foreground">
                   Admin
@@ -36,15 +31,18 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-3 text-sm">
-            {auth.user?.can_create_post && (
+            {user?.can_create_post && (
               <Button asChild size="sm">
                 <Link href="/posts/new">New post</Link>
               </Button>
             )}
 
-            {auth.user ? (
+            {user ? (
               <>
-                <span className="text-muted-foreground">{auth.user.name}</span>
+                <Link href="/profile" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                  <UserAvatar name={user.name} src={user.avatar_url} className="size-6 text-[10px]" />
+                  {user.name}
+                </Link>
                 <Button variant="ghost" size="sm" onClick={signOut}>
                   Sign out
                 </Button>
@@ -63,11 +61,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </nav>
       </header>
 
-      {auth.user && !auth.user.confirmed && (
+      {user && !user.confirmed && (
         <div className="border-b bg-amber-50 text-amber-900">
           <p className="mx-auto flex max-w-4xl flex-wrap items-center gap-x-2 px-4 py-2 text-sm">
-            Confirm your email to like and comment: we sent a link to {auth.user.email}.
-            <button type="button" onClick={() => router.post('/confirmation')} className="font-semibold underline">
+            Confirm your email to like and comment: we sent a link to {user.email}.
+            <button type="button" onClick={resendConfirmation} className="font-semibold underline">
               Send it again
             </button>
           </p>

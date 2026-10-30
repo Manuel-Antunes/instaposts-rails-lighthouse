@@ -35,6 +35,9 @@
 /app/assets/builds/*
 !/app/assets/builds/.keep
 /public/assets
+# Vite's output: development's and the tests' builds, and a local production build. The
+# image builds its own (assets:precompile).
+/public/vite*
 
 # Ignore CI service files.
 /.github

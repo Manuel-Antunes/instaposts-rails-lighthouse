@@ -4,10 +4,12 @@ import type { ReactNode } from 'react'
 import OAuthButtons, { type Provider } from '@/components/OAuthButtons'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/AppLayout'
 
+// Inertia's Form posts to Devise with Rails' CSRF token; a wrong password comes back as a
+// flash message, shown by the layout.
 export default function New({ providers }: { providers: Provider[] }) {
   return (
     <>
@@ -20,28 +22,35 @@ export default function New({ providers }: { providers: Provider[] }) {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <Form action="/login" method="post" className="space-y-4">
+          <Form action="/login" method="post">
             {({ processing }) => (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
-                </div>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <Input id="email" name="user[email]" type="email" autoComplete="email" required autoFocus />
+                </Field>
 
-                <div className="space-y-2">
+                <Field>
                   <div className="flex items-baseline justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link href="/passwords/new" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+                    <FieldLabel htmlFor="password">Password</FieldLabel>
+                    <Link href="/password/new" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
                       Forgot your password?
                     </Link>
                   </div>
-                  <Input id="password" name="password" type="password" autoComplete="current-password" required />
-                </div>
+                  <Input id="password" name="user[password]" type="password" autoComplete="current-password" required />
+                </Field>
+
+                <Field orientation="horizontal">
+                  <input id="remember_me" type="checkbox" name="user[remember_me]" value="1" className="rounded border-input" />
+                  <FieldLabel htmlFor="remember_me" className="font-normal text-muted-foreground">
+                    Remember me
+                  </FieldLabel>
+                </Field>
 
                 <Button type="submit" className="w-full" disabled={processing}>
                   {processing ? 'Signing in…' : 'Sign in'}
                 </Button>
-              </>
+              </FieldGroup>
             )}
           </Form>
 

@@ -6,6 +6,8 @@ require "rails/test_help"
 # vite_ruby's autoBuild builds when stale. Build it once here, before the workers fork.
 if ViteRuby.config.auto_build && !ViteRuby.instance.dev_server_running?
   ViteRuby.instance.builder.build || abort("The Vite build for the tests failed")
+  # The workers only read it: several building the same directory at once fail.
+  ViteRuby.configure(auto_build: false)
 end
 
 module ActiveSupport
@@ -29,18 +31,18 @@ module InertiaTestHelper
 
   def inertia_page = response.parsed_body
 
+  # What the provider answers for the next OmniAuth callback (OmniAuth's test mode,
+  # whose middleware answers /auth/:provider/callback). Undone after each test.
+  def mock_oauth(provider: "github", uid:, email:, name: "OAuth User")
+    OmniAuth.config.test_mode = true
+    OmniAuth.config.mock_auth[provider.to_sym] = OmniAuth::AuthHash.new(provider: provider, uid: uid, info: { email: email, name: name })
+  end
+
   # Signs in through the OmniAuth callback, as a browser would.
   def sign_in_as(user)
     account = user.accounts.first_or_create!(provider: "github", uid: "uid-#{user.id}")
-    OmniAuth.config.test_mode = true
-    OmniAuth.config.mock_auth[:github] = OmniAuth::AuthHash.new(
-      provider: account.provider, uid: account.uid, info: { email: user.email, name: user.name }
-    )
-    Rails.application.env_config["omniauth.auth"] = OmniAuth.config.mock_auth[:github]
+    mock_oauth(uid: account.uid, email: user.email, name: user.name)
     get "/auth/github/callback"
-  ensure
-    OmniAuth.config.test_mode = false
-    Rails.application.env_config.delete("omniauth.auth")
   end
 end
 
@@ -53,6 +55,20 @@ module GraphqlTestHelper
   end
 end
 
+module UploadTestHelper
+  # POST /graphql as a multipart request (the GraphQL multipart request spec, which
+  # Lighthouse reads): `files` maps a variable path ("files.0", "avatar") to a fixture.
+  def gql_upload(query, as:, variables: {}, files: {})
+    params = {
+      operations: { query: query, variables: variables }.to_json,
+      map: files.keys.each_with_index.to_h { |path, i| [ i.to_s, [ "variables.#{path}" ] ] }.to_json
+    }
+    files.values.each_with_index { |name, i| params[i.to_s] = fixture_file_upload(name) }
+    post "/graphql", params: params, headers: { "Authorization" => "Bearer #{AuthToken.encode(as)}" }
+    response.parsed_body
+  end
+end
+
 module MailTestHelper
   # The path of the first link to this app in the last email sent.
   def link_in_last_email
@@ -61,8 +77,14 @@ module MailTestHelper
 end
 
 class ActionDispatch::IntegrationTest
+  teardown do
+    OmniAuth.config.test_mode = false
+    OmniAuth.config.mock_auth.delete(:github)
+  end
+
   include InertiaTestHelper
   include GraphqlTestHelper
   include MailTestHelper
+  include UploadTestHelper
   include ActionMailer::TestHelper
 end

@@ -57,7 +57,7 @@ class CommentsTest < ActionDispatch::IntegrationTest
   end
 
   test "others cannot delete a comment" do
-    stranger = User.create!(name: "Stranger", email: "stranger@example.com")
+    stranger = User.create!(name: "Stranger", email: "stranger@example.com", password: "s3cret-pass")
     assert_no_difference "Comment.count" do
       assert_equal "This action is unauthorized.", gql(DELETE, as: stranger, variables: { id: comments(:by_reader).to_gid_param }).dig("errors", 0, "message")
       assert_equal "Unauthenticated.", gql(DELETE, variables: { id: comments(:by_reader).to_gid_param }).dig("errors", 0, "message")

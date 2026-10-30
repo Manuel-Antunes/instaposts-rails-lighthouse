@@ -3,12 +3,6 @@ import type { ApolloCache, Reference } from '@apollo/client'
 type Edge = { __typename?: string; cursor?: string; node: Reference }
 type CommentList = { edges: Edge[]; pageInfo?: { hasNextPage?: boolean } }
 
-// The arguments in a stored field's name: comments:{"first":2,"orderBy":[...]}.
-function argsOf(storeFieldName: string): { first?: number; orderBy?: { order?: string }[] } {
-  const colon = storeFieldName.indexOf(':')
-  return colon === -1 ? {} : JSON.parse(storeFieldName.slice(colon + 1))
-}
-
 /**
  * Put a comment just created into each cached list of its post's comments: first in a
  * newest-first list (the feed's latest comments), last in an oldest-first one. A list
@@ -16,6 +10,12 @@ function argsOf(storeFieldName: string): { first?: number; orderBy?: { order?: s
  * last page, and adding it here too would show it twice.
  */
 export function addComment(cache: ApolloCache, postId: string, commentId: string) {
+  // The arguments in a stored field's name: comments:{"first":2,"orderBy":[...]}.
+  const argsOf = (storeFieldName: string): { first?: number; orderBy?: { order?: string }[] } => {
+    const colon = storeFieldName.indexOf(':')
+    return colon === -1 ? {} : JSON.parse(storeFieldName.slice(colon + 1))
+  }
+
   cache.modify<{ comments: CommentList }>({
     id: cache.identify({ __typename: 'Post', id: postId }),
     fields: {

@@ -48,15 +48,12 @@ class BlogRailsSchema < Lighthouse::GraphQL::RbLightHouse.get_schema(
     object.to_gid_param
   end
 
-  # Given a string UUID, find the object. Trashed posts too: @globalId(decode: ID)
-  # decodes through here, and @restore / @forceDelete must find them. Query.node and
-  # nodes hide them again (Types::QueryType).
+  # Given a string UUID, find the object, under its model's default scope: Query.node
+  # finds no trashed post. (GlobalID.find skips default scopes. @globalId(decode:) reads
+  # the id from the GlobalID without coming here.)
   def self.object_from_id(global_id, query_ctx)
     gid = GlobalID.parse(global_id)
-    return unless gid
-
-    model = gid.model_class
-    (model.respond_to?(:with_discarded) ? model.with_discarded : model).find_by(id: gid.model_id)
+    gid&.model_class&.find_by(id: gid.model_id)
   rescue NameError
     nil
   end

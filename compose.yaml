@@ -8,3 +8,34 @@ services:
       - "1025:1025"
       - "8025:8025"
     restart: unless-stopped
+
+  # S3-compatible storage for Active Storage (config/storage.yml, service "media"): the
+  # bucket is public, so posts' images and videos and users' avatars have plain URLs.
+  # Console at http://localhost:9001. MinIO stopped publishing images; these are the
+  # community builds Pigsty keeps.
+  minio:
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: blog-rails
+      MINIO_ROOT_PASSWORD: blog-rails-dev-secret
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped
+
+  # Creates the bucket and lets anyone read it, once MinIO answers.
+  minio-setup:
+    image: pgsty/mc:RELEASE.2026-10-26T00-00-00Z
+    depends_on:
+      - minio
+    entrypoint: >
+      sh -c "until mc alias set local http://minio:9000 blog-rails blog-rails-dev-secret >/dev/null; do sleep 1; done &&
+             mc mb --ignore-existing local/blog-rails &&
+             mc anonymous set download local/blog-rails"
+    restart: "no"
+
+volumes:
+  minio-data:

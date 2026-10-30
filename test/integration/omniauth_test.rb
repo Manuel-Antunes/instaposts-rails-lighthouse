@@ -1,18 +1,7 @@
 require "test_helper"
 
 class OmniauthTest < ActionDispatch::IntegrationTest
-  setup do
-    OmniAuth.config.test_mode = true
-    OmniAuth.config.mock_auth[:github] = OmniAuth::AuthHash.new(
-      provider: "github", uid: "99", info: { email: "oauth@example.com", name: "OAuth User" }
-    )
-    Rails.application.env_config["omniauth.auth"] = OmniAuth.config.mock_auth[:github]
-  end
-
-  teardown do
-    OmniAuth.config.test_mode = false
-    Rails.application.env_config.delete("omniauth.auth")
-  end
+  setup { mock_oauth(uid: "99", email: "oauth@example.com") }
 
   test "the callback creates the user and starts a browser session" do
     assert_difference "User.count", 1 do
@@ -22,7 +11,7 @@ class OmniauthTest < ActionDispatch::IntegrationTest
 
     inertia_visit :get, "/"
     assert_equal "oauth@example.com", inertia_page.dig("props", "auth", "user", "email")
-    assert_equal "Signed in as OAuth User.", inertia_page.dig("flash", "notice")
+    assert_equal "Successfully authenticated from Github account.", inertia_page.dig("flash", "notice")
   end
 
   test "with FRONTEND_AUTH_CALLBACK_URL the callback also hands a JWT that resolves me" do

@@ -22,7 +22,7 @@ Rails.application.configure do
   # config.asset_host = "http://assets.example.com"
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  config.active_storage.service = :media
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   # config.assume_ssl = true
@@ -60,16 +60,20 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates: APP_URL, as for OmniAuth.
   app_url = URI(ENV.fetch("APP_URL", "https://example.com"))
   config.action_mailer.default_url_options = { host: app_url.host, protocol: app_url.scheme }
+  config.action_mailer.default_url_options[:port] = app_url.port unless app_url.port == app_url.default_port
 
-  # The SMTP server the confirmation and password reset emails go through.
+  # The SMTP server the confirmation and password reset emails go through. It
+  # authenticates only with SMTP_USERNAME: a relay without login refuses SMTP-AUTH.
   if ENV["SMTP_ADDRESS"].present?
     config.action_mailer.smtp_settings = {
       address: ENV["SMTP_ADDRESS"],
-      port: ENV.fetch("SMTP_PORT", 587).to_i,
-      user_name: ENV["SMTP_USERNAME"],
-      password: ENV["SMTP_PASSWORD"],
-      authentication: :plain
+      port: ENV.fetch("SMTP_PORT", 587).to_i
     }
+    if ENV["SMTP_USERNAME"].present?
+      config.action_mailer.smtp_settings.merge!(
+        user_name: ENV["SMTP_USERNAME"], password: ENV["SMTP_PASSWORD"], authentication: :plain
+      )
+    end
   end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to

@@ -24,7 +24,7 @@ class PostPolicyTest < ActiveSupport::TestCase
   end
 
   test "writing waits for a confirmed email" do
-    unconfirmed = User.create!(name: "New", email: "new@example.com", role: :author)
+    unconfirmed = User.create!(name: "New", email: "new@example.com", password: "s3cret-pass", role: :author)
     assert_not PostPolicy.new(unconfirmed, Post).create?
     assert_not PostPolicy.new(unconfirmed, posts(:one)).like?
     assert_not CommentPolicy.new(unconfirmed, Comment).create?
@@ -42,8 +42,8 @@ class PostPolicyTest < ActiveSupport::TestCase
   end
 
   test "listing trashed posts is for admins" do
-    assert PostPolicy.new(nil, Post).index?(trashed: "WITHOUT")
-    assert_not PostPolicy.new(users(:author), Post).index?(trashed: "ONLY")
-    assert PostPolicy.new(users(:admin), Post).index?(trashed: "WITH")
+    assert_not PostPolicy.new(nil, Post).view_trashed?
+    assert_not PostPolicy.new(users(:author), Post).view_trashed?
+    assert PostPolicy.new(users(:admin), Post).view_trashed?
   end
 end

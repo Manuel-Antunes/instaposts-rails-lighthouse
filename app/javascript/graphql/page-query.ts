@@ -1,4 +1,4 @@
-import type { ApolloClient, OperationVariables, TypedDocumentNode } from '@apollo/client'
+import type { OperationVariables, TypedDocumentNode } from '@apollo/client'
 import { useApolloClient, useQuery } from '@apollo/client/react'
 import { usePage } from '@inertiajs/react'
 import { getOperationAST, type GraphQLFormattedError } from 'graphql'
@@ -16,16 +16,11 @@ export type PageQuery = {
   errors: GraphQLFormattedError[] | null
 }
 
-// The page queries this browser wrote to its cache. As long-lived as the cache: there is
-// one client for the visit (entrypoints/inertia.tsx), while the page component is mounted
-// again when Inertia goes back in history. The server renders each request once, with a
-// client of its own: it always writes, and remembers nothing.
+// The page queries this browser wrote to its cache: the one thing that has to outlive the
+// component, as long as the cache does. There is one client for the visit
+// (entrypoints/inertia.tsx), while the page component is mounted again when Inertia goes
+// back in history.
 const written = new Set<string>()
-const isServer = typeof window === 'undefined'
-
-function write(client: ApolloClient, query: TypedDocumentNode<any, any>, pageQuery: PageQuery, broadcast: boolean) {
-  if (pageQuery.data) client.cache.writeQuery({ query, variables: pageQuery.variables, data: pageQuery.data, broadcast })
-}
 
 /**
  * The page's pageQuery, preloaded by Rails. The result is written to Apollo's cache
@@ -51,12 +46,19 @@ export function usePageQuery<TData, TVariables extends OperationVariables>(query
     )
   }
 
-  // The id this render wrote, still to broadcast.
+  const write = (broadcast: boolean) => {
+    // Rails ran this very operation, with these variables: its data is the query's result.
+    if (pageQuery.data) client.cache.writeQuery({ query, variables: pageQuery.variables as TVariables, data: pageQuery.data as TData, broadcast })
+  }
+
+  // The id this render wrote, still to broadcast. The server renders each request once,
+  // with a client of its own: it always writes, and remembers nothing.
   const fresh = useRef<string | null>(null)
-  if (isServer || !written.has(pageQuery.id)) {
-    if (!isServer) written.add(pageQuery.id)
+  const server = typeof window === 'undefined'
+  if (server || !written.has(pageQuery.id)) {
+    if (!server) written.add(pageQuery.id)
     // Not broadcast: other components must not update while this one renders.
-    write(client, query, pageQuery, false)
+    write(false)
     fresh.current = pageQuery.id
   }
 
@@ -65,7 +67,7 @@ export function usePageQuery<TData, TVariables extends OperationVariables>(query
   useLayoutEffect(() => {
     if (fresh.current !== pageQuery.id) return
     fresh.current = null
-    write(client, query, pageQuery, true)
+    write(true)
   }, [client, query, pageQuery])
 
   const result = useQuery(query, {

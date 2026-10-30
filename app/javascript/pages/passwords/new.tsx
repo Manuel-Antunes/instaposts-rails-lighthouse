@@ -3,10 +3,12 @@ import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import AppLayout from '@/layouts/AppLayout'
 
+// Inertia's Form posts to Devise with Rails' CSRF token. Devise's paranoid mode answers the
+// same whether the email has an account or not, in a flash message.
 export default function New() {
   return (
     <>
@@ -19,18 +21,18 @@ export default function New() {
         </CardHeader>
 
         <CardContent>
-          <Form action="/passwords" method="post" className="space-y-4">
+          <Form action="/password" method="post">
             {({ processing }) => (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
-                </div>
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <Input id="email" name="user[email]" type="email" autoComplete="email" required autoFocus />
+                </Field>
 
                 <Button type="submit" className="w-full" disabled={processing}>
                   {processing ? 'Sending…' : 'Send me the link'}
                 </Button>
-              </>
+              </FieldGroup>
             )}
           </Form>
         </CardContent>

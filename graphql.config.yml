@@ -10,7 +10,7 @@ projects:
       - schema-directives.graphql
       - programmatic-types.graphql
   # The frontend's graphql() documents, against the schema as clients see it, with the
-  # fields Lighthouse rewrites (connections, orderBy inputs): bin/rails graphql:schema:dump.
+  # fields Lighthouse rewrites (connections, orderBy inputs): Lighthouse's schema_output.
   app:
     schema: schema.graphql
     documents: app/javascript/**/*.{ts,tsx}

@@ -1,49 +1,26 @@
-import { CombinedGraphQLErrors } from '@apollo/client'
-import { useMutation } from '@apollo/client/react'
-import { Link, usePage } from '@inertiajs/react'
-import { type FormEvent, type RefObject, useState } from 'react'
+import { Link } from '@inertiajs/react'
+import { type RefObject, useId } from 'react'
+import { Controller } from 'react-hook-form'
 
-import { addComment } from '@/components/comments/cache'
-import { graphql } from '@/graphql'
+import { Button } from '@/components/ui/button'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { useAuth } from '@/hooks/use-auth'
+import { useCreateComment } from '@/hooks/use-comments'
+import { useZodForm } from '@/hooks/use-zod-form'
 import { cn } from '@/lib/utils'
-
-const CREATE_COMMENT = graphql(`
-  mutation CreateComment($postId: ID!, $body: String!) {
-    createComment(input: { postId: $postId, body: $body }) {
-      id
-      ...CommentItem_Comment
-      ...CommentLine_Comment
-      post {
-        id
-        commentsCount
-      }
-    }
-  }
-`)
-
-// The message of a validation error (Lighthouse's extensions.validation), else the error's.
-function messageOf(error: unknown) {
-  if (CombinedGraphQLErrors.is(error)) {
-    const validation = error.errors[0]?.extensions?.validation as Record<string, string[]> | undefined
-    return validation ? Object.values(validation).flat().join(' ') : error.message
-  }
-  return error instanceof Error ? error.message : 'Could not post the comment.'
-}
+import { COMMENT_MAX_LENGTH, commentSchema } from '@/schemas/comment'
 
 /**
- * "Add a comment…": the new comment appears in the post's cached lists of comments
- * (addComment) and its count goes up, wherever they are shown.
+ * "Add a comment…": the new comment appears in the post's cached lists of comments and
+ * its count goes up, wherever they are shown. Guests are asked to sign in, and users who
+ * have not confirmed their email to confirm it.
  */
 export default function CommentForm({ postId, inputRef, className }: { postId: string; inputRef?: RefObject<HTMLInputElement | null>; className?: string }) {
-  const user = usePage().props.auth.user
-  const [body, setBody] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [create, { loading }] = useMutation(CREATE_COMMENT, {
-    update(cache, { data }) {
-      const comment = data?.createComment
-      if (comment) addComment(cache, comment.post.id, comment.id)
-    },
-  })
+  const { user } = useAuth()
+  const id = useId()
+  const { form, submit } = useZodForm(commentSchema, { defaultValues: { body: '' } })
+  const [createComment] = useCreateComment()
 
   if (user && !user.confirmed) {
     return <p className={cn('text-sm text-muted-foreground', className)}>Confirm your email to comment.</p>
@@ -59,36 +36,50 @@ export default function CommentForm({ postId, inputRef, className }: { postId: s
     )
   }
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    if (!body.trim() || loading) return
-
-    setError(null)
-    try {
-      await create({ variables: { postId, body } })
-      setBody('')
-    } catch (e) {
-      setError(messageOf(e))
-    }
-  }
+  const onSubmit = submit(async (values) => {
+    await createComment({ variables: { postId, body: values.body } })
+    form.reset()
+  })
 
   return (
-    <form onSubmit={submit} className={cn('text-sm', className)}>
-      <div className="flex items-center gap-3">
-        <input
-          ref={inputRef}
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder="Add a comment…"
-          aria-label="Add a comment"
-          maxLength={2200}
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm placeholder:text-muted-foreground focus:ring-0"
-        />
-        <button type="submit" disabled={!body.trim() || loading} className="font-semibold text-sky-600 hover:text-sky-800 disabled:opacity-40">
-          Post
-        </button>
-      </div>
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    <form onSubmit={onSubmit} className={cn('text-sm', className)}>
+      <Controller
+        name="body"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field data-invalid={fieldState.invalid}>
+            <div className="flex items-center gap-3">
+              <FieldLabel htmlFor={id} className="sr-only">
+                Add a comment
+              </FieldLabel>
+              <Input
+                {...field}
+                ref={(element) => {
+                  field.ref(element)
+                  if (inputRef) inputRef.current = element
+                }}
+                id={id}
+                placeholder="Add a comment…"
+                maxLength={COMMENT_MAX_LENGTH}
+                autoComplete="off"
+                aria-invalid={fieldState.invalid}
+                className="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
+              />
+              <Button
+                type="submit"
+                variant="ghost"
+                size="sm"
+                className="px-1 font-semibold text-sky-600 hover:bg-transparent hover:text-sky-800"
+                disabled={!field.value.trim() || form.formState.isSubmitting}
+              >
+                Post
+              </Button>
+            </div>
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <FieldError errors={[form.formState.errors.root?.server]} />
     </form>
   )
 }

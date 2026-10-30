@@ -7,7 +7,8 @@ import { addTypenameSelectionDocumentTransform } from '@graphql-codegen/client-p
 // development, whenever a document or the schema changes; `npm run codegen` runs the same.
 // Paths are relative to the project root, the directory vite_ruby runs Vite from.
 const config: CodegenConfig = {
-  // Written by Rails: bin/rails graphql:schema:dump, and on every reload in development.
+  // Written by Lighthouse (config.schema_output): on every reload in development, and by
+  // bin/rails lighthouse:print_schema WRITE=1.
   schema: 'schema.graphql',
   documents: ['app/javascript/**/*.{ts,tsx}', '!app/javascript/graphql/generated/**'],
   ignoreNoDocuments: true,
@@ -26,7 +27,7 @@ const config: CodegenConfig = {
       // or the preloaded result could not be written to the cache as it is.
       documentTransforms: [addTypenameSelectionDocumentTransform],
       config: {
-        scalars: { DateTime: 'string', JSON: 'unknown' },
+        scalars: { DateTime: 'string', JSON: 'unknown', Upload: 'File' },
         enumsAsTypes: true,
         useTypeImports: true,
       },

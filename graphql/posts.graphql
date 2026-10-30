@@ -3,6 +3,8 @@ type Post implements Node @node {
   name: String!
   content: String!
   author: User @belongsTo
+  "Its images and videos, in order; empty for a post with text only."
+  assets: [PostAsset!]! @hasMany @lazyLoad(relations: ["file_attachment.blob"])
   "The post's page in the app (/posts/:id): Types::PostType#path."
   path: String!
   "How many users like the post."
@@ -25,16 +27,35 @@ extend type Query {
   "A post by its global id. Authorized by PostPolicy#show?."
   post(id: ID! @globalId(decode: ID) @eq): Post @find @canResolved(ability: "show")
 
-  "Live posts. trashed: ONLY or WITH lists the trash too: admins only (PostPolicy#index?)."
-  posts(orderBy: _ @orderBy(columns: ["created_at", "name", "id"])): [Post!]!
+  "Live posts. The trashed argument lists the trash too: admins only (PostPolicy#view_trashed?)."
+  posts(orderBy: _ @orderBy(columns: ["created_at", "name"])): [Post!]!
     @paginate(type: CONNECTION)
-    @softDeletes
-    @canModel(ability: "index", injectArgs: true)
+    @softDeletes(ability: "view_trashed")
+}
+
+"How a post's file is shown."
+enum PostAssetKind {
+  IMAGE @enum(value: "image")
+  VIDEO @enum(value: "video")
+}
+
+"An image or video of a post: an Active Storage attachment on the public media bucket."
+type PostAsset {
+  id: ID!
+  kind: PostAssetKind!
+  "Its URL on the public media bucket: plain and permanent."
+  url: String! @attachment(name: "file", url: DIRECT)
+  contentType: String!
 }
 
 input CreatePostInput {
   name: String!
   content: String!
+  """
+  Images and videos, in order (at most 10). @upload stores each on the media bucket and
+  hands Post#files= its signed id.
+  """
+  files: [Upload!] @upload(disk: "media", path: "posts", public: true)
 }
 
 input UpdatePostInput {

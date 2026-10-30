@@ -1,0 +1,7 @@
+Hi <%= @resource.name %>,
+
+Confirm this is your email to like posts and comment on them:
+
+<%= confirmation_url(@resource, confirmation_token: @token) %>
+
+The link works for 3 days. If you did not sign up, ignore this email.

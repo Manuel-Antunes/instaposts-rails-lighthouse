@@ -25,3 +25,6 @@ interface Node {
 }
 
 scalar DateTime
+
+"A file sent with a multipart request (the GraphQL multipart request spec)."
+scalar Upload

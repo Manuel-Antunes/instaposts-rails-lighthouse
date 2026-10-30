@@ -8,17 +8,26 @@ Rails.application.routes.draw do
   end
   post "/graphql", to: "graphql#execute"
 
-  # OmniAuth: POST /auth/:provider starts the flow (handled by its middleware).
-  get "/login", to: "sessions#new"
-  post "/login", to: "sessions#create"
-  delete "/logout", to: "sessions#destroy"
-  get "/signup", to: "registrations#new"
-  post "/signup", to: "registrations#create"
-  get "/confirmations/:token", to: "confirmations#show", as: :confirmation
-  post "/confirmation", to: "confirmations#create", as: :resend_confirmation
-  resources :passwords, param: :token, only: %i[new create edit update]
-  match "/auth/:provider/callback", to: "omniauth_callbacks#create", via: %i[get post]
-  get "/auth/failure", to: "omniauth_callbacks#failure"
+  # Devise, with this app's URLs: /login, /logout and /signup; /password (reset) and
+  # /confirmation (email); OmniAuth's POST /auth/:provider and /auth/:provider/callback.
+  devise_for :users, path: "", skip: %i[sessions registrations], controllers: {
+    passwords: "users/passwords", confirmations: "users/confirmations", omniauth_callbacks: "users/omniauth_callbacks"
+  }
+  devise_scope :user do
+    get "/login", to: "users/sessions#new", as: :new_user_session
+    post "/login", to: "users/sessions#create", as: :user_session
+    delete "/logout", to: "users/sessions#destroy", as: :destroy_user_session
+    get "/signup", to: "users/registrations#new", as: :new_user_registration
+    post "/signup", to: "users/registrations#create", as: :user_registration
+    # Email and password, from the profile page (Devise asks for the current password).
+    patch "/account", to: "users/registrations#update", as: :account
+  end
+
+  # Name and picture: the page preloads ProfilePage; saving goes through /graphql (updateProfile).
+  resource :profile, only: :show
+  # Anyone's public page, at their @username: their picture, and a grid of their posts. The @
+  # keeps it apart from every other route, so no username has to be reserved.
+  get "/@:username", to: "users#show", as: :user, format: false, constraints: { username: /[A-Za-z0-9_.]{1,30}/ }
 
   namespace :admin do
     resources :users, only: :index
@@ -36,6 +45,6 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
-  resources :posts, only: %i[index show new create]
+  resources :posts, only: %i[index show new]
   root "posts#index"
 end

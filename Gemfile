@@ -78,3 +78,7 @@ gem "vite_rails", "~> 3.11"
 gem "bcrypt", "~> 3.1"
 
 gem "discard", "~> 1.4"
+
+gem "devise", "~> 5.0"
+
+gem "aws-sdk-s3", "~> 1.237", require: false

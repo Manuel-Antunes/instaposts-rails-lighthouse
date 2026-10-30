@@ -22,10 +22,26 @@ class PostsTest < ActionDispatch::IntegrationTest
     assert posts.dig("pageInfo", "hasNextPage")
 
     after = posts.dig("pageInfo", "endCursor")
-    rest = gql(%({ posts(first: 10, after: "#{after}", orderBy: [{ column: CREATED_AT, order: DESC }, { column: ID, order: DESC }]) { edges { node { name } } pageInfo { hasNextPage } } }))
+    rest = gql(%({ posts(first: 10, after: "#{after}", orderBy: [{ column: CREATED_AT, order: DESC }]) { edges { node { name } } pageInfo { hasNextPage } } }))
     assert_equal 5, rest.dig("data", "posts", "edges").size
     assert_not rest.dig("data", "posts", "pageInfo", "hasNextPage")
     assert_empty posts["edges"].map { _1.dig("node", "name") } & rest.dig("data", "posts", "edges").map { _1.dig("node", "name") }
+  end
+
+  test "posts created at the same moment are each on one page" do
+    at = 1.minute.from_now
+    5.times { |i| Post.create!(name: "Tied #{i}", content: "c", author: users(:author), created_at: at) }
+
+    page = ->(after) { gql(%({ posts(first: 2#{after && %(, after: "#{after}")}, orderBy: [{ column: CREATED_AT, order: DESC }]) { edges { node { name } } pageInfo { endCursor } } })).dig("data", "posts") }
+    names = []
+    after = nil
+    3.times do
+      result = page.(after)
+      names.concat(result["edges"].map { _1.dig("node", "name") })
+      after = result.dig("pageInfo", "endCursor")
+    end
+
+    assert_equal 5.times.map { "Tied #{_1}" }, names.first(5)
   end
 
   test "a missing post is a 404" do
@@ -33,61 +49,19 @@ class PostsTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "guests are sent to the login page when they try to write" do
+  test "the new post page is for authors and admins" do
     get "/posts/new"
-    assert_redirected_to login_path
+    assert_redirected_to new_user_session_path
 
-    assert_no_difference "Post.count" do
-      post "/posts", params: { name: "x", content: "y" }
-    end
-    assert_redirected_to login_path
-  end
-
-  test "readers cannot write posts" do
     sign_in_as users(:reader)
-
     get "/posts/new"
     assert_redirected_to root_path
     assert_not inertia_page_can_create?
 
-    assert_no_difference "Post.count" do
-      post "/posts", params: { name: "x", content: "y" }
-    end
-  end
-
-  test "authors can create posts and become their author" do
     sign_in_as users(:author)
     assert inertia_page_can_create?
-
     inertia_visit :get, "/posts/new"
     assert_equal "posts/new", inertia_page["component"]
-
-    assert_difference "Post.count", 1 do
-      post "/posts", params: { name: "Hello", content: "World" }
-    end
-    created = Post.order(:id).last
-    assert_equal users(:author), created.author
-    assert_redirected_to post_path(created)
-  end
-
-  test "admins can create posts" do
-    sign_in_as users(:admin)
-
-    assert_difference "Post.count", 1 do
-      post "/posts", params: { name: "Hello", content: "World" }
-    end
-  end
-
-  test "invalid posts go back to the form with errors" do
-    sign_in_as users(:author)
-
-    assert_no_difference "Post.count" do
-      post "/posts", params: { name: "", content: "" }, headers: { "X-Inertia" => "true" }
-    end
-    assert_redirected_to new_post_path
-
-    inertia_visit :get, "/posts/new"
-    assert_includes inertia_page["props"]["errors"].keys, "name"
   end
 
   test "the login page lists the configured providers" do

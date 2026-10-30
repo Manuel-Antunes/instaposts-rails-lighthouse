@@ -13,9 +13,6 @@
 # /graphql, and sends the result in the `page_query` prop. The frontend writes it into
 # Apollo's cache before the page renders (usePageQuery).
 module PageQueries
-  # The SDL clients see, which GraphQL Code Generator reads.
-  SCHEMA_PATH = Rails.root.join("schema.graphql")
-
   # The prop the result goes in: a page's own props may not use it.
   PROP = :page_query
 
@@ -28,6 +25,9 @@ module PageQueries
   # The controller passed variables to a page without a pageQuery, or variables
   # the operation does not declare, or left out one it requires.
   class VariablesError < Error; end
+
+  # A @throttle on the operation answered the request (429) before the page rendered.
+  class ThrottledError < Error; end
 
   # The operation did not run at all (no `data`): a variable of the wrong type, or
   # a document the schema no longer validates.
@@ -44,15 +44,5 @@ module PageQueries
 
   def manifest
     @manifest ||= Manifest.new
-  end
-
-  # Write the SDL clients see to SCHEMA_PATH, unless it already holds it.
-  # Returns whether the file changed.
-  def dump_schema(schema = BlogRailsSchema)
-    sdl = "#{schema.to_definition.strip}\n"
-    return false if SCHEMA_PATH.exist? && SCHEMA_PATH.read == sdl
-
-    SCHEMA_PATH.write(sdl)
-    true
   end
 end

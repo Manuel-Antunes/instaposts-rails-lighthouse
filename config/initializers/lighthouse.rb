@@ -54,8 +54,12 @@ Lighthouse.configure do |config|
   # config.schema_cache = Rails.env.production?
 
   # Reload the app (and so the schema) when a .graphql file changes.
-  # On: config/initializers/page_queries.rb then rewrites schema.graphql for codegen.
   config.watch_sdl = Rails.env.development?
+
+  # The schema clients see, for GraphQL Code Generator: rewritten in development on boot
+  # and on every reload, only when it changed (the Vite dev server then regenerates the
+  # frontend's types). Committed; CI checks it with bin/rails lighthouse:schema_output:verify.
+  config.schema_output = "schema.graphql"
 
   # Rewrite schema-directives.graphql and programmatic-types.graphql, which your
   # IDE reads through graphql.config.yml, on boot and on every reload. nil: in
@@ -97,6 +101,13 @@ end
 # Listen to Lighthouse's request, schema-build and execution events. A listener
 # may return a value where the event says so, as BuildExtensionsResponse does.
 # See docs/events.md.
-# Lighthouse::Events.listen(Lighthouse::Events::EndExecution) do |event|
-#   Rails.logger.info("[GraphQL] #{event.result.to_h['errors']&.size.to_i} errors")
-# end
+#
+# Every operation answered with errors, on /graphql (each of a batch) or preloaded for a
+# page, is a warning in the log: refused ones (Unauthenticated., unauthorized), invalid ones,
+# failed ones. The operation and the messages, never the variables, which may be private.
+Lighthouse::Events.listen(Lighthouse::Events::EndExecution) do |event|
+  errors = event.result["errors"]
+  next if errors.blank?
+
+  Rails.logger.warn { "  GraphQL #{event.operation_name || 'an unnamed operation'} answered with errors: #{errors.map { _1['message'] }.uniq.join('; ')}" }
+end

@@ -82,6 +82,26 @@ GEM
     ast (2.4.3)
     auth-sanitizer (0.2.5)
       version_gem (~> 1.1, >= 1.1.16)
+    aws-eventstream (1.4.1)
+    aws-partitions (1.1299.1)
+    aws-sdk-core (3.263.0)
+      aws-eventstream (~> 1, >= 1.4.1)
+      aws-partitions (~> 1, >= 1.992.0)
+      aws-sigv4 (~> 1.9)
+      base64
+      bigdecimal
+      jmespath (~> 1, >= 1.6.1)
+      logger
+      rexml (~> 3.4, >= 3.4.2)
+    aws-sdk-kms (1.138.0)
+      aws-sdk-core (~> 3, >= 3.263.0)
+      aws-sigv4 (~> 1.5)
+    aws-sdk-s3 (1.237.0)
+      aws-sdk-core (~> 3, >= 3.263.0)
+      aws-sdk-kms (~> 1)
+      aws-sigv4 (~> 1.5)
+    aws-sigv4 (1.12.1)
+      aws-eventstream (~> 1, >= 1.0.2)
     base64 (0.3.0)
     bcrypt (3.1.22)
     bcrypt_pbkdf (1.1.2)
@@ -111,6 +131,12 @@ GEM
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
+    devise (5.0.4)
+      bcrypt (~> 3.0)
+      orm_adapter (~> 0.1)
+      railties (>= 7.0)
+      responders
+      warden (~> 1.2.3)
     discard (1.4.0)
       activerecord (>= 4.2, < 9.0)
     dotenv (3.2.0)
@@ -142,7 +168,7 @@ GEM
       activesupport (>= 6.1)
     graphiql-rails (1.10.5)
       railties
-    graphql (2.6.12)
+    graphql (2.6.14)
       base64
       fiber-storage
       logger
@@ -164,6 +190,7 @@ GEM
     jbuilder (2.15.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
+    jmespath (1.6.2)
     json (3.1.0)
     jwt (3.3.0)
       base64
@@ -179,7 +206,7 @@ GEM
       thor (~> 1.3)
       zeitwerk (>= 2.6.18, < 3.0)
     language_server-protocol (3.17.0.6)
-    lighthouse-graphql (0.7.2)
+    lighthouse-graphql (0.8.1)
       activesupport (>= 6.0)
       graphql (~> 2.5)
     lint_roller (1.1.0)
@@ -266,6 +293,7 @@ GEM
     omniauth-rails_csrf_protection (2.0.1)
       actionpack (>= 4.2)
       omniauth (~> 2.0)
+    orm_adapter (0.5.0)
     ostruct (0.6.3)
     parallel (2.3.0)
     parser (3.3.12.0)
@@ -344,6 +372,10 @@ GEM
     regexp_parser (2.13.1)
     reline (0.7.0)
       io-console (~> 0.5)
+    responders (3.2.1)
+      actionpack (>= 7.0)
+      railties (>= 7.0)
+    rexml (3.4.4)
     rubocop (1.92.0)
       json (>= 2.3)
       language_server-protocol (~> 3.17.0.2)
@@ -440,6 +472,8 @@ GEM
       mutex_m
       rack-proxy (>= 0.6.1)
       zeitwerk (~> 2.2)
+    warden (1.2.9)
+      rack (>= 2.0.9)
     web-console (4.3.0)
       actionview (>= 8.0.0)
       bindex (>= 0.4.0)
@@ -465,12 +499,14 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  aws-sdk-s3 (~> 1.237)
   bcrypt (~> 3.1)
   bootsnap
   brakeman
   bundler-audit
   capybara
   debug
+  devise (~> 5.0)
   discard (~> 1.4)
   graphiql-rails
   graphql

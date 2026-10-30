@@ -13,7 +13,7 @@ class AdminTest < ActionDispatch::IntegrationTest
 
   test "the admin page is for admins" do
     get "/admin/users"
-    assert_redirected_to login_path
+    assert_redirected_to new_user_session_path
 
     sign_in_as users(:reader)
     get "/admin/users"

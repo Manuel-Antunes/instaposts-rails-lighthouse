@@ -38,7 +38,7 @@ class PageQueriesTest < ActionDispatch::IntegrationTest
     assert_equal "PostShowPage", page_query["operation"]
     assert_equal({ "id" => posts(:one).to_gid_param }, page_query["variables"])
     post = page_query.dig("data", "post")
-    assert_equal [ "First", 2, 2 ], post.values_at("name", "likesCount", "commentsCount")
+    assert_equal [ "First", 2 ], post.values_at("name", "likesCount")
     assert_equal [ "Nice post", "Agreed" ], post.dig("comments", "edges").map { _1.dig("node", "body") }
   end
 
@@ -57,6 +57,46 @@ class PageQueriesTest < ActionDispatch::IntegrationTest
 
     assert_equal "posts/new", inertia_page["component"]
     assert_nil page_query
+  end
+
+  # The context of each operation Lighthouse runs while the block does (its StartExecution
+  # event), by operation name.
+  def contexts
+    seen = {}
+    listener = Lighthouse::Events.listen(Lighthouse::Events::StartExecution) { seen[_1.operation_name] = _1.context }
+    yield
+    seen
+  ensure
+    Lighthouse::Events.forget(listener)
+  end
+
+  test "a page's operation runs as the session's user, with what @throttle reads" do
+    sign_in_as users(:admin)
+    context = contexts { inertia_visit :get, "/admin/users", env: { "REMOTE_ADDR" => "203.0.113.7" } }.fetch("UsersPage")
+
+    assert_equal users(:admin), context[:current_user]
+    assert_equal "203.0.113.7", context[:remote_ip]
+    assert_instance_of Admin::UsersController, context[:lighthouse_controller]
+  end
+
+  test "a guest's page runs as no one" do
+    context = contexts { inertia_visit :get, "/@alice" }.fetch("UserShowPage")
+
+    assert_nil context[:current_user]
+    assert_instance_of UsersController, context[:lighthouse_controller]
+  end
+
+  test "a page's operation gets the context /graphql gives the same user" do
+    page = contexts do
+      sign_in_as users(:author)
+      inertia_visit :get, "/profile"
+    end.fetch("ProfilePage")
+    api = contexts { gql("query ProfileProbe { me { id } }", as: users(:author)) }.fetch("ProfileProbe")
+
+    # The same keys: one GraphqlController#graphql_context adds, the pages would miss.
+    assert_equal api.to_h.keys.sort, page.to_h.keys.sort
+    assert_equal api[:current_user], page[:current_user]
+    assert_equal users(:author), page[:current_user]
   end
 
   test "a partial reload without page_query does not run it" do

@@ -1,13 +1,8 @@
 # frozen_string_literal: true
 
 class PostPolicy < ApplicationPolicy
-  # Anyone, signed in or not, reads posts; only admins list the trashed ones
-  # (`trashed: ONLY` or `WITH`, which @canModel(injectArgs: true) passes in).
-  def index?(args = {})
-    trashed = args[:trashed]
-    trashed.nil? || trashed.to_s.casecmp?("without") || admin?
-  end
-
+  # Anyone, signed in or not, reads posts.
+  def index? = true
   def show? = true
 
   # Only authors and admins write posts, once their email is confirmed.
@@ -17,7 +12,9 @@ class PostPolicy < ApplicationPolicy
   def destroy? = user.present? && (record.author_id == user.id || user.admin?)
 
   # The trash is the admins': they see it, restore a post or delete it for good.
+  # view_trashed?: whoever passes Query.posts the `trashed` argument (@softDeletes).
   def trash? = admin?
+  def view_trashed? = trash?
   def restore? = trash?
   def force_delete? = trash?
 

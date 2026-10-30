@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
 module PageQueries
-  # Runs a page's pageQuery through Lighthouse with the given context.
+  # Runs a page's pageQuery with `execute`: a controller's lighthouse_execute, so it runs as a
+  # request to /graphql would, as the signed-in user.
   #
-  #   preloader = PageQueries::Preloader.new(context: { current_user: current_user })
+  #   preloader = PageQueries::Preloader.new(execute: method(:lighthouse_execute))
   #   preloader.prepare("posts/show", { id: post.to_gid_param }).call
   #   # => { id: "…", operation: "PostShowPage", sha256: "…", variables: { "id" => "…" },
   #   #      data: { "post" => { … } }, errors: nil }
   class Preloader
-    def initialize(context:, schema: BlogRailsSchema, manifest: PageQueries.manifest)
-      @context = context
-      @schema = schema
+    def initialize(execute:, manifest: PageQueries.manifest)
+      @execute = execute
       @manifest = manifest
     end
 
@@ -48,11 +48,12 @@ module PageQueries
     def execute(page, operation, variables)
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       result = ActiveSupport::Notifications.instrument("preload.page_queries", page: page, operation: operation.name) do
-        Lighthouse::GraphQL::PersistedQueries.execute(
-          @schema, query: operation.document, variables: variables, operation_name: operation.name, context: @context
-        ).to_h
+        @execute.call(operation.document, variables: variables, operation_name: operation.name)
       end
-      log(page, operation, started, result)
+      # A @throttle answered the request with a 429: there is no page to render.
+      raise ThrottledError, "#{operation.name} was throttled" if result.nil?
+
+      log(page, operation, started)
 
       # No `data` at all: the operation never ran (a variable of the wrong type, a
       # document the schema rejects). Errors next to `data` are the page's to show.
@@ -63,13 +64,11 @@ module PageQueries
         data: result["data"], errors: result["errors"] }
     end
 
-    # The operation and how long it took; never the variables, which may be private.
-    def log(page, operation, started, result)
+    # The operation and how long it took; never the variables, which may be private. Its
+    # errors are logged with every operation's (config/initializers/lighthouse.rb).
+    def log(page, operation, started)
       ms = (Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000
       Rails.logger.info { format("  PageQuery %s for %s (%.1fms)", operation.name, page, ms) }
-      return if result["errors"].blank?
-
-      Rails.logger.warn { "  PageQuery #{operation.name} errors: #{result['errors'].map { _1['message'] }.join('; ')}" }
     end
   end
 end

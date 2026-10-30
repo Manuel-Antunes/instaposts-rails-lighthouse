@@ -38,10 +38,12 @@ class SoftDeletesTest < ActionDispatch::IntegrationTest
 
     assert_equal [ "Second" ], names(trashed: "ONLY", as: users(:admin))
     assert_equal [ "Admin post", "First", "Second" ], names(trashed: "WITH", as: users(:admin))
-    assert_equal [ "Admin post", "First" ], names(trashed: "WITHOUT")
+    assert_equal [ "Admin post", "First" ], names(trashed: "WITHOUT", as: users(:admin))
+    # Without the argument, anyone lists the live posts; with it, whatever its value, only
+    # admins (@softDeletes(ability: "view_trashed")).
+    assert_equal [ "Admin post", "First" ], names
     [ nil, users(:reader), users(:author) ].each do |user|
-      assert_equal "This action is unauthorized.", names(trashed: "ONLY", as: user)
-      assert_equal "This action is unauthorized.", names(trashed: "WITH", as: user)
+      %w[ONLY WITH WITHOUT].each { assert_equal "This action is unauthorized.", names(trashed: _1, as: user) }
     end
   end
 

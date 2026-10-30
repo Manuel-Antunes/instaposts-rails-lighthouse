@@ -11,6 +11,14 @@
 module PageQueryRendering
   extend ActiveSupport::Concern
 
+  # lighthouse_execute: the operation runs with the context GraphqlController gives one
+  # (graphql_context, and what @throttle reads).
+  include Lighthouse::GraphQL::Operations
+
+  included do
+    lighthouse_schema "BlogRailsSchema"
+  end
+
   private
 
   # `component` defaults to the one `render inertia:` infers (posts/show for
@@ -23,13 +31,7 @@ module PageQueryRendering
       raise ArgumentError, "The #{PageQueries::PROP} prop is reserved for the page's pageQuery result"
     end
 
-    query = PageQueries::Preloader.new(context: page_query_context).prepare(component, variables)
+    query = PageQueries::Preloader.new(execute: method(:lighthouse_execute)).prepare(component, variables)
     render inertia: component, props: props.merge(PageQueries::PROP => query), **options
-  end
-
-  # What GraphqlController gives an operation: the user and what @throttle reads.
-  # The user is the session's, never one the caller passes in.
-  def page_query_context
-    { current_user: current_user, remote_ip: request.remote_ip, lighthouse_controller: self }
   end
 end

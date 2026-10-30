@@ -25,7 +25,11 @@ module PageQueries
         "posts/feed" => operation("Feed", "query Feed { posts(first: 10) { edges { node { name } } } me { name } }"),
         "posts/new" => nil
       )
-      Preloader.new(context: { current_user: user }, manifest: manifest)
+      # What a controller's lighthouse_execute does, as `user`.
+      execute = lambda do |query, variables:, operation_name:|
+        BlogRailsSchema.execute(query, variables: variables, operation_name: operation_name, context: { current_user: user }).to_h
+      end
+      Preloader.new(execute: execute, manifest: manifest)
     end
 
     test "runs the page's operation as the context's user" do

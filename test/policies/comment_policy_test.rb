@@ -21,7 +21,7 @@ class CommentPolicyTest < ActiveSupport::TestCase
     assert CommentPolicy.new(users(:author), comment).destroy?
     assert CommentPolicy.new(users(:admin), comment).destroy?
 
-    stranger = User.create!(name: "Stranger", email: "stranger@example.com")
+    stranger = User.create!(name: "Stranger", email: "stranger@example.com", password: "s3cret-pass")
     assert_not CommentPolicy.new(stranger, comment).destroy?
     assert_not CommentPolicy.new(nil, comment).destroy?
   end

@@ -1,3 +1,4 @@
+import AuthorName from '@/components/users/AuthorName'
 import { type FragmentType, getFragmentData, graphql } from '@/graphql'
 
 export const CommentLine_CommentFragment = graphql(`
@@ -5,19 +6,18 @@ export const CommentLine_CommentFragment = graphql(`
     id
     body
     author {
-      id
-      name
+      ...AuthorName_User
     }
   }
 `)
 
-// A comment under a post in the feed: the author in bold, then the comment.
+// A comment under a post in the feed: the author, then the comment.
 export default function CommentLine(props: { comment: FragmentType<typeof CommentLine_CommentFragment> }) {
   const comment = getFragmentData(CommentLine_CommentFragment, props.comment)
 
   return (
     <p className="line-clamp-2 text-sm">
-      <span className="font-semibold">{comment.author.name}</span> {comment.body}
+      <AuthorName user={comment.author} /> {comment.body}
     </p>
   )
 }

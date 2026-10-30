@@ -25,3 +25,23 @@ local:
 #   service: Mirror
 #   primary: local
 #   mirrors: [ amazon, google, microsoft ]
+
+# Posts' images and videos and users' avatars: a public bucket, so each file has a plain,
+# permanent URL. GraphQL's @upload(disk: "media", public: true) stores uploads here. In
+# development it is MinIO (compose.yaml); in production any S3-compatible storage, from
+# the environment; in tests a public directory.
+media:
+<% if Rails.env.test? %>
+  service: Disk
+  root: <%= Rails.root.join("tmp/storage/media") %>
+  public: true
+<% else %>
+  service: S3
+  endpoint: <%= ENV.fetch("S3_ENDPOINT", "http://localhost:9000") %>
+  access_key_id: <%= ENV.fetch("S3_ACCESS_KEY_ID", "blog-rails") %>
+  secret_access_key: <%= ENV.fetch("S3_SECRET_ACCESS_KEY", "blog-rails-dev-secret") %>
+  region: <%= ENV.fetch("S3_REGION", "us-east-1") %>
+  bucket: <%= ENV.fetch("S3_BUCKET", "blog-rails") %>
+  force_path_style: true
+  public: true
+<% end %>

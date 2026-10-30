@@ -25,6 +25,8 @@
     "app/javascript/components/comments/cache.ts",
     "app/javascript/graphql/generated/possible-types.ts",
     "app/javascript/graphql/generated/type-policies.ts",
-    "app/javascript/graphql/page-pagination.ts"
+    "app/javascript/graphql/page-pagination.ts",
+    "app/javascript/lib/errors.ts",
+    "app/javascript/schemas/*.ts"
   ]
 }

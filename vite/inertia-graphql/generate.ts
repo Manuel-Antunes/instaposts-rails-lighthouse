@@ -1,6 +1,6 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { glob, readFile } from 'node:fs/promises'
-import { basename, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { generate as codegen } from '@graphql-codegen/cli'
@@ -32,8 +32,10 @@ export function resolveOptions(root = process.cwd()): Options {
 }
 
 // Only rewrite what changed: an untouched file keeps Vite's HMR and vite_ruby's digest still.
+// The folder is not committed, so a fresh clone does not have it yet.
 function writeIfChanged(file: string, content: string) {
   if (existsSync(file) && readFileSync(file, 'utf8') === content) return false
+  mkdirSync(dirname(file), { recursive: true })
   writeFileSync(file, content)
   return true
 }
