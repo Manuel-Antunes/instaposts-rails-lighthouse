@@ -15,7 +15,7 @@ import { userPath } from '@/lib/paths'
 // with $after, on /graphql.
 export const pageQuery = graphql(`
   query UserShowPage($username: String!, $after: String) {
-    user(username: $username) {
+    user(by: { username: $username }) {
       id
       username
       name

@@ -1,3 +1,8 @@
+"""
+Requires that exactly one field must be supplied and that field must not be `null`.
+"""
+directive @oneOf on INPUT_OBJECT
+
 type Comment implements Node {
   author: User!
   body: String!
@@ -375,9 +380,9 @@ type Query {
   ): PostConnection!
 
   """
-  A user by their lowercase @username: as public as their page. Authorized by UserPolicy#show?.
+  A user, by id or by @username: as public as their page. Authorized by UserPolicy#show?.
   """
-  user(username: String!): User
+  user(by: UserBy!): User
 
   """
   Every user. Admins only.
@@ -534,6 +539,22 @@ type User implements Node {
   Their handle, unique and lowercase: their public page is /@username.
   """
   username: String!
+}
+
+"""
+How to find one user: by exactly one of these (@oneOf). A query that gives none, both
+or null is rejected before anything resolves.
+"""
+input UserBy @oneOf {
+  """
+  Their global id, as User.id gives it.
+  """
+  id: ID
+
+  """
+  Their @username, lowercase: what their page's address carries.
+  """
+  username: String
 }
 
 """

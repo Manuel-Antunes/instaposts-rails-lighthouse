@@ -20,6 +20,7 @@ The frontend is React with Inertia.js. Every page is rendered on the server with
 - Soft deletes: `@softDeletes(ability: "view_trashed")`, `@restore` and `@forceDelete` over Discard.
 - Files: the `Upload` scalar with `@upload` to S3, and `@attachment` for their URLs.
 - Relay global ids with `@globalId` and `@node`.
+- One lookup of several with `@oneOf`: `user(by: UserBy!)` finds a user by `id` or by `username`, and a query that gives both, neither or `null` is refused before anything resolves.
 
 **Pages preload their query on the server.** A page declares its operation next to the component (`export const pageQuery = graphql(...)`). The controller calls `render_preloaded`, which runs that operation through Lighthouse as the signed-in user, with the same directives and policies as `/graphql`, and sends the result with the page. The browser writes it to Apollo's cache before the first render, so the server-rendered HTML and the hydrated page match.
 

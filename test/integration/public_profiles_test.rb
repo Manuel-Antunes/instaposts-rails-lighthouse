@@ -4,7 +4,7 @@ require "test_helper"
 class PublicProfilesTest < ActionDispatch::IntegrationTest
   GRID = <<~GQL.freeze
     query($username: String!, $after: String) {
-      user(username: $username) {
+      user(by: { username: $username }) {
         name email postsCount
         posts(first: 2, after: $after, orderBy: [{ column: CREATED_AT, order: DESC }]) {
           edges { node { name } } pageInfo { hasNextPage endCursor }
@@ -92,7 +92,7 @@ class PublicProfilesTest < ActionDispatch::IntegrationTest
   end
 
   test "an email stays visible only to the user and admins" do
-    query = "query($username: String!) { user(username: $username) { email } }"
+    query = "query($username: String!) { user(by: { username: $username }) { email } }"
     variables = { username: "alice" }
 
     assert_nil gql(query, variables: variables).dig("data", "user", "email")
@@ -122,5 +122,20 @@ class PublicProfilesTest < ActionDispatch::IntegrationTest
     inertia_visit :get, "/"
     author = page_query.dig("data", "posts", "edges").map { _1["node"] }.find { _1["name"] == "Admin post" }["author"]
     assert_equal "adam", author["username"]
+  end
+
+  test "a user is found by exactly one of id or username (UserBy is @oneOf)" do
+    query = "query($by: UserBy!) { user(by: $by) { username } }"
+    alice = users(:author)
+
+    assert_equal "alice", gql(query, variables: { by: { username: "alice" } }).dig("data", "user", "username")
+    assert_equal "alice", gql(query, variables: { by: { id: alice.to_gid_param } }).dig("data", "user", "username")
+    assert_nil gql(query, variables: { by: { username: "nobody" } }).dig("data", "user")
+
+    [ { id: alice.to_gid_param, username: "alice" }, {}, { username: nil } ].each do |by|
+      result = gql(query, variables: { by: by })
+      assert_nil result["data"], "#{by.inspect} should be refused before anything resolves"
+      assert_match(/invalid value/, result.dig("errors", 0, "message"))
+    end
   end
 end

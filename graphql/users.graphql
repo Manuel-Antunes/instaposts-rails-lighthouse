@@ -21,12 +21,23 @@ type User implements Node @node {
   updatedAt: DateTime!
 }
 
+"""
+How to find one user: by exactly one of these (@oneOf). A query that gives none, both
+or null is rejected before anything resolves.
+"""
+input UserBy @oneOf {
+  "Their global id, as User.id gives it."
+  id: ID @globalId(decode: ID) @eq
+  "Their @username, lowercase: what their page's address carries."
+  username: String @eq
+}
+
 extend type Query {
   "Every user. Admins only."
   users: [User!]! @paginate(type: CONNECTION) @guard @canModel(ability: "index")
 
-  "A user by their lowercase @username: as public as their page. Authorized by UserPolicy#show?."
-  user(username: String! @eq): User @find @canResolved(ability: "show")
+  "A user, by id or by @username: as public as their page. Authorized by UserPolicy#show?."
+  user(by: UserBy!): User @find @canResolved(ability: "show")
 
   "The signed-in user, identified by the bearer JWT."
   me: User @guard
