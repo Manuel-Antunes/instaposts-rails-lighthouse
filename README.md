@@ -25,6 +25,9 @@ The frontend is React with Inertia.js. Every page is rendered on the server with
 
 **Search, as Instagram's.** `graphql/search.graphql` puts Lighthouse's `@search` on three kinds of field, and pg_search does the rest in PostgreSQL: a word being typed matches its start (`ra` finds `#rails`), and accents are ignored (`joao` finds João).
 
+- Every search reads a GIN index: each table keeps `search_vector`, a stored generated `tsvector`, so nothing is computed per row (on 100,000 posts, a search takes a few milliseconds instead of ~400).
+- Captions are searched in English and in Portuguese: their vector holds each word as written, as English stems it and as Portuguese stems it, and each word of the query is read all three ways (`dictionaries:`, in `config/initializers/pg_search.rb`). `runs` finds "running", `corrida` finds "correndo". Names, @usernames and #hashtags are matched as written.
+
 - The search box in the header asks `search(term:)`, a field of the `SearchResult` union (`User | Post | Hashtag`): one ranked list of people, posts and hashtags with an exact total, from pg_search's multisearch documents. A short match, a @username or a #hashtag, ranks before a long caption that repeats the word (`config/initializers/pg_search.rb`).
 - The search page (`/explore/search?q=`) asks each kind alone: `people(term:)`, `hashtags(term:)` and `posts(search:)`, each a `pg_search_scope` that the field's other directives compose on: `posts` keeps its `@orderBy` and `@softDeletes`, the best match first and the client's order among equals, and `hashtags` breaks the rank's ties with `scopes: ["popular"]`.
 - What a search may answer is the model's: a trashed post is never found, nor a hashtag no live post has (`Hashtag.search_results`), in the union too.

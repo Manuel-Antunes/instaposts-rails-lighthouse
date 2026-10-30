@@ -6,11 +6,13 @@ class Post < ApplicationRecord
   default_scope -> { kept }
 
   # Full-text search, through Lighthouse's @search: Query.posts(search:) ranks by the title
-  # first, then the caption; Query.search finds posts among users and hashtags (multisearch),
-  # live ones only: a trashed post leaves its document, and gets it back once restored.
+  # first, then the caption, in English and in Portuguese ("running" finds "runs", "corrida"
+  # finds "correndo"), from the GIN index on search_vector (config/initializers/pg_search.rb).
+  # Query.search finds posts among users and hashtags (multisearch), live ones only: a trashed
+  # post leaves its document, and gets it back once restored.
   include PgSearch::Model
-  pg_search_scope :search, against: { name: "A", content: "B" },
-                           using: { tsearch: { prefix: true, dictionary: "simple" } }, ignoring: :accents
+  pg_search_scope :search, against: { name: "A", content: "B" }, ignoring: :accents,
+                           using: { tsearch: { tsvector_column: "search_vector", dictionaries: %w[simple english portuguese], prefix: true } }
   multisearchable against: %i[name content], if: :kept?,
                   update_if: ->(post) { post.saved_change_to_name? || post.saved_change_to_content? }
 

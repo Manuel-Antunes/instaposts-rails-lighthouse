@@ -32,7 +32,9 @@ class Hashtag < ApplicationRecord
     order(Arel.sql("(#{count.select(Arel.star.count).to_sql}) DESC"))
   }
 
-  pg_search_scope :search, against: :name, using: { tsearch: { prefix: true, dictionary: "simple" } }, ignoring: :accents
+  # As written, from the GIN index on search_vector: #viagens is not #viagem.
+  pg_search_scope :search, against: :name, ignoring: :accents,
+                           using: { tsearch: { tsvector_column: "search_vector", dictionary: "simple", prefix: true } }
   multisearchable against: :name
 
   # The tags written in `text`, as stored: lowercase, each once, in the order they come.

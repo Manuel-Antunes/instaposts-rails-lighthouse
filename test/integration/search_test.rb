@@ -38,6 +38,40 @@ class SearchTest < ActionDispatch::IntegrationTest
     assert_includes found(search_box("pasteis")), [ "Post", "Weekend in Lisbon" ]
   end
 
+  test "posts are searched in English and in Portuguese, each word as each language stems it" do
+    Post.create!(name: "Morning", content: "Running by the river", author: users(:author))
+    Post.create!(name: "Manhã", content: "Correndo na praia com os amigos", author: users(:author))
+    titles = ->(term) { gql("query($term: String!) { posts(search: $term, first: 10) { edges { node { name } } } }", variables: { term: term }).dig("data", "posts", "edges").map { _1.dig("node", "name") } }
+
+    assert_equal [ "Morning" ], titles.("runs"), "English: runs, running"
+    assert_equal [ "Manhã" ], titles.("corrida"), "Portuguese: corrida, correndo"
+    assert_equal [ "Manhã" ], titles.("amigo"), "Portuguese: amigo, amigos"
+    assert_equal [ "Manhã" ], titles.("manha"), "accents dropped on both sides"
+    assert_equal [ "Manhã" ], titles.("corrida praia"), "every word must match"
+    assert_empty titles.("corrida river")
+  end
+
+  test "the search box stems in both languages too" do
+    Post.create!(name: "Manhã", content: "Correndo na praia", author: users(:author))
+    assert_includes found(search_box("corrida")), [ "Post", "Manhã" ]
+  end
+
+  test "searches read the GIN index on search_vector, not every row" do
+    plan = ->(relation) do
+      Post.transaction do
+        Post.connection.execute("SET LOCAL enable_seqscan = off")
+        Post.connection.select_values("EXPLAIN #{relation.to_sql}").join("\n")
+      end
+    end
+
+    # Unscoped: on three rows the planner would rather read the live posts' index (discarded_at).
+    assert_match(/index_posts_on_search_vector/, plan.(Post.unscoped.search("lisbon")))
+    assert_match(/index_users_on_search_vector/, plan.(User.search("joao")))
+    assert_match(/index_hashtags_on_search_vector/, plan.(Hashtag.search("trav")))
+    assert_match(/index_pg_search_documents_on_search_vector/, plan.(PgSearch.multisearch("travel")))
+    assert_no_match(/to_tsvector/, Post.search("lisbon").to_sql, "the document is the stored vector")
+  end
+
   test "pages of the search box come with an exact total" do
     first = search_box("travel", first: 2)
     assert_equal 2, first["data"].size
