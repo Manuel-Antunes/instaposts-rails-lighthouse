@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= GraphiQL::Rails.config.title || 'GraphiQL' %></title>
+    <%# Copy of graphiql-rails 1.10.5's view (Propshaft branch). GraphiQL 3.8.3 introspects
+        without isOneOf, so the editor never flags @oneOf inputs; the bundle's fetcher calls the
+        global fetch, so we add the field to its introspection query before the bundle loads. %>
+    <%= javascript_tag nonce: true do %>
+      (() => {
+        const originalFetch = window.fetch;
+        window.fetch = (input, init) => {
+          if (typeof init?.body === "string" && init.body.includes("IntrospectionQuery")) {
+            const body = JSON.parse(init.body);
+            body.query = body.query.replace(
+              "fragment FullType on __Type {",
+              "fragment FullType on __Type {\n  isOneOf"
+            );
+            init = { ...init, body: JSON.stringify(body) };
+          }
+          return originalFetch(input, init);
+        };
+      })();
+    <% end %>
+    <%= stylesheet_link_tag("graphiql/rails/graphiql-3.8.3") %>
+    <%= stylesheet_link_tag("graphiql/rails/application") %>
+    <%= javascript_include_tag("graphiql/rails/application", nonce: true) %>
+  </head>
+  <body>
+    <%= content_tag :div, 'Loading...', id: 'graphiql-container', data: {
+      graphql_endpoint_path: graphql_endpoint_path,
+      initial_query: GraphiQL::Rails.config.initial_query,
+      logo: GraphiQL::Rails.config.logo,
+      headers: GraphiQL::Rails.config.resolve_headers(self),
+      query_params: GraphiQL::Rails.config.query_params,
+      header_editor_enabled: GraphiQL::Rails.config.header_editor_enabled,
+      input_value_deprecation: GraphiQL::Rails.config.input_value_deprecation,
+      should_persist_headers: GraphiQL::Rails.config.should_persist_headers
+    } %>
+  </body>
+</html>
