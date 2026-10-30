@@ -153,13 +153,6 @@ GEM
       logger
     faraday-net_http (3.5.0)
       net-http (~> 0.5)
-    ffi (1.17.4-aarch64-linux-gnu)
-    ffi (1.17.4-aarch64-linux-musl)
-    ffi (1.17.4-arm-linux-gnu)
-    ffi (1.17.4-arm-linux-musl)
-    ffi (1.17.4-arm64-darwin)
-    ffi (1.17.4-x86_64-linux-gnu)
-    ffi (1.17.4-x86_64-linux-musl)
     fiber-storage (1.0.1)
     fugit (1.14.0)
       et-orbi (~> 1.4)
@@ -176,9 +169,7 @@ GEM
       logger
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
-    image_processing (1.14.0)
-      mini_magick (>= 4.9.5, < 6)
-      ruby-vips (>= 2.0.17, < 3)
+    image_processing (2.2.0)
     inertia_rails (3.23.0)
       railties (>= 6)
     io-console (0.9.4)
@@ -222,8 +213,6 @@ GEM
       net-smtp
     marcel (1.2.1)
     matrix (0.4.3)
-    mini_magick (5.4.0)
-      logger
     mini_mime (1.1.5)
     minitest (6.0.6)
       drb (~> 2.0)
@@ -405,9 +394,6 @@ GEM
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
-    ruby-vips (2.3.0)
-      ffi (~> 1.12)
-      logger
     rubyzip (3.7.0)
     securerandom (0.4.1)
     selenium-webdriver (4.51.0)
@@ -510,7 +496,7 @@ DEPENDENCIES
   discard (~> 1.4)
   graphiql-rails
   graphql
-  image_processing (~> 1.2)
+  image_processing (~> 2.2)
   inertia_rails (~> 3.23)
   jbuilder
   jwt (~> 3.3)
