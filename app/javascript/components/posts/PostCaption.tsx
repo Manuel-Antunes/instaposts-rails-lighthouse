@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import RichText from '@/components/RichText'
 import AuthorName from '@/components/users/AuthorName'
 import { type FragmentType, getFragmentData, graphql } from '@/graphql'
 import { cn } from '@/lib/utils'
@@ -19,7 +20,7 @@ export const PostCaption_PostFragment = graphql(`
 
 /**
  * The caption of a post: its author's name, then the text. With pictures the title is not
- * on the square, so it leads the caption. `clamp` shortens it to two lines, with a "more"
+ * on the square, so it leads the caption, whose #hashtags and @mentions are links. `clamp` shortens it to two lines, with a "more"
  * to read it all, as in the feed.
  */
 export default function PostCaption({ post, clamp = false }: { post: FragmentType<typeof PostCaption_PostFragment>; clamp?: boolean }) {
@@ -32,7 +33,7 @@ export default function PostCaption({ post, clamp = false }: { post: FragmentTyp
       <p className={cn('min-w-0 text-sm wrap-break-word', clamped ? 'line-clamp-2' : 'whitespace-pre-wrap')}>
         <AuthorName user={caption.author} />{' '}
         {caption.assets.length > 0 && <span className="font-semibold">{caption.name} · </span>}
-        {caption.content}
+        <RichText text={caption.content} />
       </p>
       {clamped && caption.content.length > 120 && (
         <button type="button" onClick={() => setExpanded(true)} className="text-sm text-muted-foreground">

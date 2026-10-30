@@ -1,6 +1,8 @@
 import { Link, usePage } from '@inertiajs/react'
+import { Search } from 'lucide-react'
 import type { ReactNode } from 'react'
 
+import SearchBox from '@/components/search/SearchBox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import UserAvatar from '@/components/UserAvatar'
@@ -13,7 +15,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-muted/30 text-foreground">
       <header className="border-b bg-background">
-        <nav className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+        <nav className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex items-center gap-4">
             <Link href="/" className="text-lg font-semibold">
               InstaPosts
@@ -30,7 +32,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             )}
           </div>
 
+          <SearchBox className="hidden w-full max-w-64 sm:block" />
+
           <div className="flex items-center gap-3 text-sm">
+            <Link href="/explore/search" aria-label="Search" className="text-muted-foreground hover:text-foreground sm:hidden">
+              <Search className="size-5" />
+            </Link>
             {user?.can_create_post && (
               <Button asChild size="sm">
                 <Link href="/posts/new">New post</Link>

@@ -1,3 +1,4 @@
+import RichText from '@/components/RichText'
 import AuthorName from '@/components/users/AuthorName'
 import { type FragmentType, getFragmentData, graphql } from '@/graphql'
 
@@ -11,13 +12,13 @@ export const CommentLine_CommentFragment = graphql(`
   }
 `)
 
-// A comment under a post in the feed: the author, then the comment.
+// A comment under a post in the feed: the author, then the comment, its #hashtags and @mentions as links.
 export default function CommentLine(props: { comment: FragmentType<typeof CommentLine_CommentFragment> }) {
   const comment = getFragmentData(CommentLine_CommentFragment, props.comment)
 
   return (
     <p className="line-clamp-2 text-sm">
-      <AuthorName user={comment.author} /> {comment.body}
+      <AuthorName user={comment.author} /> <RichText text={comment.body} />
     </p>
   )
 }

@@ -27,6 +27,7 @@
     "app/javascript/graphql/generated/type-policies.ts",
     "app/javascript/graphql/page-pagination.ts",
     "app/javascript/lib/errors.ts",
+    "app/javascript/lib/rich-text.ts",
     "app/javascript/schemas/*.ts"
   ]
 }

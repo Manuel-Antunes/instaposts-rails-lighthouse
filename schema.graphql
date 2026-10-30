@@ -70,6 +70,96 @@ input CreatePostInput {
 
 scalar DateTime
 
+"""
+A #hashtag, as Instagram's: lowercase, without the #. A post is tagged with the ones of its
+caption and of its author's own comments on it.
+"""
+type Hashtag implements Node {
+  id: ID!
+
+  """
+  Lowercase, without the #: its page is /explore/tags/:name.
+  """
+  name: String!
+
+  """
+  The live posts it tags: its page's grid. Newest first with orderBy created_at.
+  """
+  posts(
+    """
+    A cursor after which elements are returned.
+    """
+    after: String
+
+    """
+    Limits number of fetched items.
+    """
+    first: Int!
+
+    """
+    Order by clause for Hashtag.posts.orderBy.
+    """
+    orderBy: [HashtagPostsOrderByOrderByClause!]
+  ): PostConnection!
+
+  """
+  How many live posts it tags.
+  """
+  postsCount: Int!
+}
+
+"""
+A paginated list of Hashtag edges.
+"""
+type HashtagConnection {
+  """
+  A list of Hashtag edges.
+  """
+  edges: [HashtagEdge!]!
+
+  """
+  Pagination information about the list of edges.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An edge that contains a node of type Hashtag and a cursor.
+"""
+type HashtagEdge {
+  """
+  A unique cursor that can be used for pagination.
+  """
+  cursor: String!
+
+  """
+  The Hashtag node.
+  """
+  node: Hashtag!
+}
+
+"""
+Allowed column names for Hashtag.posts.orderBy.
+"""
+enum HashtagPostsOrderByColumn {
+  CREATED_AT
+}
+
+"""
+Order by clause for Hashtag.posts.orderBy.
+"""
+input HashtagPostsOrderByOrderByClause {
+  """
+  The column that is used for ordering.
+  """
+  column: HashtagPostsOrderByColumn!
+
+  """
+  The direction that is used for ordering.
+  """
+  order: SortOrder!
+}
+
 scalar JSON
 
 type Mutation {
@@ -183,6 +273,51 @@ type PageInfo {
 
   """
   Total number of nodes in the paginated connection.
+  """
+  total: Int!
+}
+
+"""
+Information about pagination using a fully featured paginator.
+"""
+type PaginatorInfo {
+  """
+  Number of items in the current page.
+  """
+  count: Int!
+
+  """
+  Index of the current page.
+  """
+  currentPage: Int!
+
+  """
+  Index of the first item in the current page.
+  """
+  firstItem: Int
+
+  """
+  Are there more pages after this one?
+  """
+  hasMorePages: Boolean!
+
+  """
+  Index of the last item in the current page.
+  """
+  lastItem: Int
+
+  """
+  Index of the last available page.
+  """
+  lastPage: Int!
+
+  """
+  Number of items per page.
+  """
+  perPage: Int!
+
+  """
+  Number of total available items.
   """
   total: Int!
 }
@@ -325,6 +460,27 @@ Indicates what fields are available at the top level of a query operation.
 """
 type Query {
   """
+  A hashtag by its name, lowercase and without the #: what its page shows.
+  """
+  hashtag(name: String!): Hashtag
+
+  """
+  Hashtags of live posts: best matches first, then the most used (Hashtag.popular).
+  """
+  hashtags(
+    """
+    A cursor after which elements are returned.
+    """
+    after: String
+
+    """
+    Limits number of fetched items.
+    """
+    first: Int! = 10
+    term: String!
+  ): HashtagConnection!
+
+  """
   The signed-in user, identified by the bearer JWT.
   """
   me: User
@@ -350,12 +506,30 @@ type Query {
   ): [Node]
 
   """
+  People, by @username first, then by name: best matches first.
+  """
+  people(
+    """
+    A cursor after which elements are returned.
+    """
+    after: String
+
+    """
+    Limits number of fetched items.
+    """
+    first: Int! = 10
+    term: String!
+  ): UserConnection!
+
+  """
   A post by its global id. Authorized by PostPolicy#show?.
   """
   post(id: ID!): Post
 
   """
   Live posts. The trashed argument lists the trash too: admins only (PostPolicy#view_trashed?).
+  With search, the posts whose title or caption match it (pg_search: Post.search), best
+  matches first; orderBy breaks the ties.
   """
   posts(
     """
@@ -372,12 +546,32 @@ type Query {
     Order by clause for Query.posts.orderBy.
     """
     orderBy: [QueryPostsOrderByOrderByClause!]
+    search: String
 
     """
     Specify if you want to include or exclude trashed results from a query.
     """
     trashed: Trashed
   ): PostConnection!
+
+  """
+  Instagram's search box: people, hashtags and posts together, best matches first, in one
+  ranked list with an exact total. Lighthouse's @search over a union, through pg_search's
+  multisearch: each model's documents (pg_search_documents), counted only when the model
+  answers its record (a live post, a hashtag of a live post).
+  """
+  search(
+    """
+    Limits number of fetched items.
+    """
+    first: Int! = 10
+
+    """
+    The offset from which items are returned.
+    """
+    page: Int
+    term: String!
+  ): SearchResultPaginator!
 
   """
   A user, by id or by @username: as public as their page. Authorized by UserPolicy#show?.
@@ -421,6 +615,26 @@ input QueryPostsOrderByOrderByClause {
   The direction that is used for ordering.
   """
   order: SortOrder!
+}
+
+"""
+What the search box finds: people, posts and hashtags, in one list.
+"""
+union SearchResult = Hashtag | Post | User
+
+"""
+A paginated list of SearchResult items.
+"""
+type SearchResultPaginator {
+  """
+  A list of SearchResult items.
+  """
+  data: [SearchResult!]!
+
+  """
+  Pagination information about the list of items.
+  """
+  paginatorInfo: PaginatorInfo!
 }
 
 input SendWebhookEventInput {

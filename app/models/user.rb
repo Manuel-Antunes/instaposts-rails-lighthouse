@@ -11,6 +11,13 @@ class User < ApplicationRecord
   # The picture the user chose; avatar_url (the column) is the one a provider gave.
   has_one_attached :avatar, service: :media
 
+  # Found by @username first, then by name: Query.people(term:) alone, and Query.search among
+  # posts and hashtags (multisearch). A sign-in saves the user too: only these two update it.
+  include PgSearch::Model
+  pg_search_scope :search, against: { username: "A", name: "B" },
+                           using: { tsearch: { prefix: true, dictionary: "simple" } }, ignoring: :accents
+  multisearchable against: %i[username name], update_if: ->(user) { user.saved_change_to_username? || user.saved_change_to_name? }
+
   AVATAR_MAX_SIZE = 5.megabytes
 
   # Instagram's handles: 1 to 30 letters, numbers, underscores and periods, never two periods

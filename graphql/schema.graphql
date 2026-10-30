@@ -7,6 +7,7 @@
 #import users.graphql
 #import posts.graphql
 #import comments.graphql
+#import search.graphql
 #import webhooks.graphql
 
 "Indicates what fields are available at the top level of a query operation."

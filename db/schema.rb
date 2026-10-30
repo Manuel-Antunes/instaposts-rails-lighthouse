@@ -10,7 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_30_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_30_170100) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+  enable_extension "unaccent"
+
   create_table "accounts", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "provider", null: false
@@ -60,6 +64,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_160000) do
     t.index ["post_id"], name: "index_comments_on_post_id"
   end
 
+  create_table "hashtags", force: :cascade do |t|
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_hashtags_on_name", unique: true
+  end
+
   create_table "likes", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "post_id", null: false
@@ -70,6 +81,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_160000) do
     t.index ["user_id"], name: "index_likes_on_user_id"
   end
 
+  create_table "pg_search_documents", force: :cascade do |t|
+    t.text "content"
+    t.string "searchable_type"
+    t.bigint "searchable_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["searchable_type", "searchable_id"], name: "index_pg_search_documents_on_searchable"
+  end
+
   create_table "post_assets", force: :cascade do |t|
     t.integer "post_id", null: false
     t.integer "kind", null: false
@@ -78,6 +98,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_160000) do
     t.datetime "updated_at", null: false
     t.index ["post_id", "position"], name: "index_post_assets_on_post_id_and_position"
     t.index ["post_id"], name: "index_post_assets_on_post_id"
+  end
+
+  create_table "post_hashtags", force: :cascade do |t|
+    t.bigint "post_id", null: false
+    t.bigint "hashtag_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["hashtag_id"], name: "index_post_hashtags_on_hashtag_id"
+    t.index ["post_id", "hashtag_id"], name: "index_post_hashtags_on_post_id_and_hashtag_id", unique: true
   end
 
   create_table "posts", force: :cascade do |t|
@@ -128,5 +157,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_160000) do
   add_foreign_key "likes", "posts"
   add_foreign_key "likes", "users"
   add_foreign_key "post_assets", "posts"
+  add_foreign_key "post_hashtags", "hashtags"
+  add_foreign_key "post_hashtags", "posts"
   add_foreign_key "posts", "users", column: "author_id"
 end
