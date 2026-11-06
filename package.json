@@ -28,7 +28,7 @@
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-virtual": "^3.14.24",
-    "@vitejs/plugin-react": "^6.1.2",
+    "@vitejs/plugin-react": "^6.2.1",
     "apollo-upload-client": "^20.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
