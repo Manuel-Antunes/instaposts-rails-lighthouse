@@ -6,7 +6,7 @@
     "@graphql-codegen/client-preset": "^6.2.3",
     "@graphql-codegen/fragment-matcher": "^7.1.0",
     "@graphql-typed-document-node/core": "^3.2.0",
-    "@inertiajs/core": "^3.9.1",
+    "@inertiajs/core": "^3.11.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "typescript": "^7.0.2",
