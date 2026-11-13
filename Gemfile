@@ -86,4 +86,4 @@ gem "discard", "~> 2.0"
 
 gem "devise", "~> 5.0"
 
-gem "aws-sdk-s3", "~> 1.237", require: false
+gem "aws-sdk-s3", "~> 1.240", require: false
